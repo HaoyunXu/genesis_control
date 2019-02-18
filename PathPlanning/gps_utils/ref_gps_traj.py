@@ -154,6 +154,7 @@ class GPSRefTrajectory():
 
 	''' Helper functions: you shouldn't need to call these! '''
 	def __waypoints_using_vtarget(self, closest_traj_ind, yaw_init):
+		print '3'
 		v_data = self.trajectory[closest_traj_ind:(closest_traj_ind+self.traj_horizon+1),7] #des vel from data
 		if (self.acc > 0):
 			v_acc = np.ones(self.traj_horizon+1)*self.acc			#des vel from adaptive cruise Control
@@ -165,7 +166,7 @@ class GPSRefTrajectory():
 
 		dists_to_fit = []
 		dists_to_fit.append(start_dist + self.traj_dt*self.des_speed[0])
-		for x in range(0,self.traj_horizon+1):
+		for x in range(1,self.traj_horizon+1):
 			dists_to_fit.append(dists_to_fit[x-1] + self.traj_dt*self.des_speed[x])
 
 		# NOTE: np.interp returns the first value x[0] if t < t[0] and the last value x[-1] if t > t[-1].

@@ -132,6 +132,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		# Update Model
 		kmpc.update_init_cond(x_curr, y_curr, psi_curr, v_curr)
 		kmpc.update_reference(x_ref, y_ref, psi_ref, des_speed)
+		println("6")
 
 	    ref_lock = false
 
@@ -162,7 +163,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			mpc_path_msg.psis = res[4] 	# psi_mpc
 			mpc_path_msg.xr   = res[5] 	# x_ref
 			mpc_path_msg.yr   = res[6] 	# y_ref
-			mpc_path_msg.vr   = [res[7]]	# v_ref
+			mpc_path_msg.vr   = res[7]	# v_ref
 			mpc_path_msg.psir = res[8] 	# psi_ref
 			mpc_path_msg.df   = res[9]	# d_f
 			mpc_path_msg.acc  = res[10]	# acc
