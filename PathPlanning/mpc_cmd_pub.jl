@@ -62,7 +62,7 @@ grt = rgt.GPSRefTrajectory(mat_filename=mat_fname, LAT0=lat0, LON0=lon0, YAW0=ya
 push!(LOAD_PATH, scripts_dir * "mpc_utils")
 import GPSKinMPCPathFollower
 const kmpc = GPSKinMPCPathFollower
-kmpc.update_cost(9.0, 9.0, 10.0, 0.0, 100.0, 1000.0, 0.0, 0.0) # x,y,psi,v,da,ddf,a,df
+kmpc.update_cost(9.0, 9.0, 10.0, 5.0, 100.0, 1000.0, 0.0, 0.0) # x,y,psi,v,da,ddf,a,df
 
 # Reference for MPC
 const t_ref = collect(0:kmpc.dt:kmpc.N*kmpc.dt)

@@ -58,7 +58,6 @@ class GPSRefTrajectory():
 		Xs   = []		# global X position (m, wrt to origin at LON0, LAT0)
 		Ys   = []		# global Y position (m, wrt to origin at LON0, LAT0)
 		cdists = []		# cumulative distance along path (m, aka "s" in Frenet formulation)
-		v = []
 
 		data_dict = sio.loadmat(mat_filename)
 
@@ -66,20 +65,26 @@ class GPSRefTrajectory():
 		lats = np.ravel(data_dict['lat1'])
 		lons = np.ravel(data_dict['lon1'])
 		yaws = np.ravel(data_dict['psi1'])
+		v = np.ravel(data_dict['v1'])
+		# cdists = np.ravel(data_dict['cdist2_gen'])
 
 		for i in range(len(lats)):
 			lat = lats[i]; lon = lons[i]
 			X,Y = latlon_to_XY(LAT0, LON0, lat, lon)
 			if len(Xs) == 0: 		# i.e. the first point on the trajectory
 				cdists.append(0.0)	# s = 0
-				v.append(0.0)		# v = 0
 			else:					# later points on the trajectory
 				d = math.sqrt( (X - Xs[-1])**2 + (Y - Ys[-1])**2 ) + cdists[-1]
 				cdists.append(d) 	# s = s_prev + dist(z[i], z[i-1])
-				v.append((cdists[i]-cdists[i-1])/self.traj_dt)
 			Xs.append(X)
 			Ys.append(Y)
 
+		# plt.figure()
+		# plt.subplot(211)
+		# plt.plot(tms,cdists)
+		# plt.subplot(212)
+		# plt.plot(tms, v)
+		# plt.show()
 		# global trajectory matrix
 		self.trajectory =  np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v))
 
@@ -154,7 +159,6 @@ class GPSRefTrajectory():
 
 	''' Helper functions: you shouldn't need to call these! '''
 	def __waypoints_using_vtarget(self, closest_traj_ind, yaw_init):
-		print '3'
 		v_data = self.trajectory[closest_traj_ind:(closest_traj_ind+self.traj_horizon+1),7] #des vel from data
 		if (self.acc > 0):
 			v_acc = np.ones(self.traj_horizon+1)*self.acc			#des vel from adaptive cruise Control
@@ -178,8 +182,8 @@ class GPSRefTrajectory():
 		# Send a stop command if the end of the trajectory is within the horizon of the waypoints.
 		# Alternatively, could use start_dist as well: if start_dist + some delta_s > end_dist, then stop.
 		stop_cmd = False
-		if self.x_interp[-1] == self.trajectory[-1,4] and self.y_interp[-1] == self.trajectory[-1,5]:
-			stop_cmd = True
+		# if self.x_interp[-1] == self.trajectory[-1,4] and self.y_interp[-1] == self.trajectory[-1,5]:
+		# 	stop_cmd = True
 
 		return self.x_interp, self.y_interp, self.psi_interp, self.des_speed, stop_cmd
 
