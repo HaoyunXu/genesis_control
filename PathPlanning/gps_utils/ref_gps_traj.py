@@ -50,6 +50,7 @@ class GPSRefTrajectory():
 		self.traj_dt = traj_dt				# time discretization (s) for each time step in horizon
 		self.acc = 0.0						# desired adaptive cruise control velocity, 0 if disabled
 		self.des_speed = []					# desired speed for MPC
+		self.all_traj = []					# a list of five trajectories
 
 		tms  = []		# ROS Timestamps (s)
 		lats = []		# Latitude (decimal degrees)
@@ -61,12 +62,16 @@ class GPSRefTrajectory():
 
 		data_dict = sio.loadmat(mat_filename)
 
+
+
+		###########################################
+		#### Unload Data
+		###########################################
 		tms  = np.ravel(data_dict['t1'])
 		lats = np.ravel(data_dict['lat1'])
 		lons = np.ravel(data_dict['lon1'])
 		yaws = np.ravel(data_dict['psi1'])
 		v = np.ravel(data_dict['v1'])
-		# cdists = np.ravel(data_dict['cdist2_gen'])
 
 		for i in range(len(lats)):
 			lat = lats[i]; lon = lons[i]
@@ -79,14 +84,109 @@ class GPSRefTrajectory():
 			Xs.append(X)
 			Ys.append(Y)
 
+		self.all_traj.append(np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v)))
+
+		#second segment
+		tms  = np.ravel(data_dict['t2'])
+		lats = np.ravel(data_dict['lat2'])
+		lons = np.ravel(data_dict['lon2'])
+		yaws = np.ravel(data_dict['psi2'])
+		v = np.ravel(data_dict['v2'])
+		Xs   = []
+		Ys   = []
+		cdists = []
+		for i in range(len(lats)):
+			lat = lats[i]; lon = lons[i]
+			X,Y = latlon_to_XY(LAT0, LON0, lat, lon)
+			if len(Xs) == 0: 		# i.e. the first point on the trajectory
+				cdists.append(0.0)	# s = 0
+			else:					# later points on the trajectory
+				d = math.sqrt( (X - Xs[-1])**2 + (Y - Ys[-1])**2 ) + cdists[-1]
+				cdists.append(d) 	# s = s_prev + dist(z[i], z[i-1])
+			Xs.append(X)
+			Ys.append(Y)
+
+		self.all_traj.append(np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v)))
+
+		#third segment
+		tms  = np.ravel(data_dict['t3'])
+		lats = np.ravel(data_dict['lat3'])
+		lons = np.ravel(data_dict['lon3'])
+		yaws = np.ravel(data_dict['psi3'])
+		v = np.ravel(data_dict['v3'])
+		Xs   = []
+		Ys   = []
+		cdists = []
+
+		for i in range(len(lats)):
+			lat = lats[i]; lon = lons[i]
+			X,Y = latlon_to_XY(LAT0, LON0, lat, lon)
+			if len(Xs) == 0: 		# i.e. the first point on the trajectory
+				cdists.append(0.0)	# s = 0
+			else:					# later points on the trajectory
+				d = math.sqrt( (X - Xs[-1])**2 + (Y - Ys[-1])**2 ) + cdists[-1]
+				cdists.append(d) 	# s = s_prev + dist(z[i], z[i-1])
+			Xs.append(X)
+			Ys.append(Y)
+
+		self.all_traj.append(np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v)))
+
+		#fourth segment
+		tms  = np.ravel(data_dict['t4'])
+		lats = np.ravel(data_dict['lat4'])
+		lons = np.ravel(data_dict['lon4'])
+		yaws = np.ravel(data_dict['psi4'])
+		v = np.ravel(data_dict['v4'])
+		Xs   = []
+		Ys   = []
+		cdists = []
+
+		for i in range(len(lats)):
+			lat = lats[i]; lon = lons[i]
+			X,Y = latlon_to_XY(LAT0, LON0, lat, lon)
+			if len(Xs) == 0: 		# i.e. the first point on the trajectory
+				cdists.append(0.0)	# s = 0
+			else:					# later points on the trajectory
+				d = math.sqrt( (X - Xs[-1])**2 + (Y - Ys[-1])**2 ) + cdists[-1]
+				cdists.append(d) 	# s = s_prev + dist(z[i], z[i-1])
+			Xs.append(X)
+			Ys.append(Y)
+
+		self.all_traj.append(np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v)))
+
+		#fifth segment
+		tms  = np.ravel(data_dict['t5'])
+		lats = np.ravel(data_dict['lat5'])
+		lons = np.ravel(data_dict['lon5'])
+		yaws = np.ravel(data_dict['psi5'])
+		v = np.ravel(data_dict['v5'])
+		Xs   = []
+		Ys   = []
+		cdists = []
+
+		for i in range(len(lats)):
+			lat = lats[i]; lon = lons[i]
+			X,Y = latlon_to_XY(LAT0, LON0, lat, lon)
+			if len(Xs) == 0: 		# i.e. the first point on the trajectory
+				cdists.append(0.0)	# s = 0
+			else:					# later points on the trajectory
+				d = math.sqrt( (X - Xs[-1])**2 + (Y - Ys[-1])**2 ) + cdists[-1]
+				cdists.append(d) 	# s = s_prev + dist(z[i], z[i-1])
+			Xs.append(X)
+			Ys.append(Y)
+
+		self.all_traj.append(np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v)))
+		######################################################################
+
+		self.index_traj = 0
+		self.trajectory = self.all_traj[self.index_traj]
+
 		# plt.figure()
 		# plt.subplot(211)
 		# plt.plot(tms,cdists)
 		# plt.subplot(212)
 		# plt.plot(tms, v)
 		# plt.show()
-		# global trajectory matrix
-		self.trajectory =  np.column_stack((tms, lats, lons, yaws, Xs, Ys, cdists,v))
 
 		# interpolated path or what I call "local trajectory" -> reference to MPC
 		self.x_interp	= None
@@ -160,6 +260,7 @@ class GPSRefTrajectory():
 	''' Helper functions: you shouldn't need to call these! '''
 	def __waypoints_using_vtarget(self, closest_traj_ind, yaw_init):
 		v_data = self.trajectory[closest_traj_ind:(closest_traj_ind+self.traj_horizon+1),7] #des vel from data
+		v_data = np.concatenate([v_data,np.zeros(self.traj_horizon+1-np.size(v_data))])  #in case at the end, there is no enough v_data
 		if (self.acc > 0):
 			v_acc = np.ones(self.traj_horizon+1)*self.acc			#des vel from adaptive cruise Control
 			self.des_speed = np.minimum(v_data, v_acc)			#choose the smaller values between two as the target vel
@@ -182,8 +283,8 @@ class GPSRefTrajectory():
 		# Send a stop command if the end of the trajectory is within the horizon of the waypoints.
 		# Alternatively, could use start_dist as well: if start_dist + some delta_s > end_dist, then stop.
 		stop_cmd = False
-		# if self.x_interp[-1] == self.trajectory[-1,4] and self.y_interp[-1] == self.trajectory[-1,5]:
-		# 	stop_cmd = True
+		if self.x_interp[-1] == self.trajectory[-1,4] and self.y_interp[-1] == self.trajectory[-1,5]:
+			stop_cmd = True
 
 		return self.x_interp, self.y_interp, self.psi_interp, self.des_speed, stop_cmd
 
@@ -227,3 +328,10 @@ class GPSRefTrajectory():
 
 	def _update_acc(self, newAcc):
 		self.acc = newAcc
+
+	def _update_traj(self):
+		if (self.index_traj < 5):
+			self.index_traj = self.index_traj+1
+			self.trajectory = self.all_traj[self.index_traj]
+		else:
+			raise ValueError("no more trajectories")

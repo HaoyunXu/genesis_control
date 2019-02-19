@@ -11,7 +11,7 @@ from genesis_path_follower.msg import state_est
 from genesis_path_follower.msg import mpc_path
 from std_msgs.msg import UInt8 as UInt8Msg
 from std_msgs.msg import Float32 as Float32Msg
-
+from std_msgs.msg import Bool as BoolMsg
 ###########################################
 #### LOAD ROSPARAMS
 ###########################################
@@ -66,9 +66,9 @@ y_curr  = 0.0
 psi_curr  = 0.0
 v_curr  = 0.0
 command_stop = False
-
+stopped = False
 ###########################################
-#### State Estimation Callback.
+#### Callbacks.
 ###########################################
 def state_est_callback(msg):
 	global x_curr, y_curr, psi_curr, v_curr
@@ -84,6 +84,12 @@ def state_est_callback(msg):
 def acc_sub_callback(msg):
 	grt._update_acc(msg.data)
 
+def go_cmd_callback(msg):
+	global stopped
+
+	if stopped and msg.data:
+		grt._update_traj()
+		stopped = False
 
 
 ###########################################
@@ -101,7 +107,7 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 		global ref_lock
 		ref_lock = True
 
-		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop
+		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped
 
 		if not track_with_time:
 			# fixed velocity-based path tracking
@@ -115,13 +121,18 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 			if stop_cmd == True:
 				command_stop = True
 
+		#the car is stopped
+		if v_curr < 0.2 and stop_cmd:
+			stopped = True
+
+
 		# Update Model
 		kmpc.update_init_cond(x_curr, y_curr, psi_curr, v_curr)
 		kmpc.update_reference(x_ref, y_ref, psi_ref, des_speed)
 
 		ref_lock = False
 
-		if command_stop == False:
+		if not stopped:
 			a_opt, df_opt, is_opt, solv_time = kmpc.solve_model()
 
 			rostm = rospy.get_rostime()
@@ -153,7 +164,7 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 			mpc_path_msg.acc  = res[9]	# acc
 			mpc_path_pub_obj.publish(mpc_path_msg)
 		else:
-			acc_pub_obj.publish(Float32Msg(-1.0))
+			acc_pub_obj.publish(Float32Msg(0.0))
 			steer_pub_obj.publish(Float32Msg(0.0))
 
 		loop_rate.sleep()
@@ -169,7 +180,7 @@ def start_mpc_node():
 	mpc_path_pub = rospy.Publisher("mpc_path", mpc_path, queue_size=2)
 	sub_state  = rospy.Subscriber("state_est", state_est, state_est_callback, queue_size=2)
 	acc_sub = rospy.Subscriber("acc_mode", Float32Msg, acc_sub_callback, queue_size=2)
-
+	go_cmd_sub = rospy.Subscriber("go_cmd", BoolMsg, go_cmd_callback, queue_size=2)
 	# Start up Ipopt/Solver.
 	for i in range(3):
 		kmpc.solve_model()
