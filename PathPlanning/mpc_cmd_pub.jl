@@ -132,7 +132,6 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		# Update Model
 		kmpc.update_init_cond(x_curr, y_curr, psi_curr, v_curr)
 		kmpc.update_reference(x_ref, y_ref, psi_ref, des_speed)
-		println("6")
 
 	    ref_lock = false
 

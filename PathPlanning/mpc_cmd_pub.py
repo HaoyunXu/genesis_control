@@ -20,9 +20,8 @@ if rospy.has_param("mat_waypoints"):
 else:
 	raise ValueError("No Matfile of waypoints provided!")
 
-if rospy.has_param("track_using_time") and rospy.has_param("target_vel"):
+if rospy.has_param("track_using_time"):
 	track_with_time = rospy.get_param("track_using_time")
-	target_vel = rospy.get_param("target_vel")	
 else:
 	raise ValueError("Invalid rosparam trajectory definition: track_using_time and target_vel")
 
@@ -57,15 +56,10 @@ add_path_script = 'push!(LOAD_PATH, "%s/mpc_utils/")' % scripts_dir
 jl.eval(add_path_script)
 jl.eval('import GPSKinMPCPathFollower')
 from julia import GPSKinMPCPathFollower as kmpc
-kmpc.update_cost(9.0, 9.0, 10.0, 0.0, 100.0, 1000.0, 0.0, 0.0) # x,y,psi,v,da,ddf,a,df
+kmpc.update_cost(9.0, 9.0, 10.0, 5.0, 100.0, 1000.0, 0.0, 0.0) # x,y,psi,v,da,ddf,a,df
 
-# Reference for MPC
-if target_vel > 0.0:
-	des_speed = target_vel
-else:
-	des_speed = 0.00
 
-ref_lock = False				
+ref_lock = False
 received_reference = False
 x_curr  = 0.0
 y_curr  = 0.0
@@ -87,6 +81,14 @@ def state_est_callback(msg):
 		v_curr = msg.v
 		received_reference = True
 
+def acc_sub_callback(msg):
+	grt._update_acc(msg.data)
+
+
+
+###########################################
+#### Publication Loop
+###########################################
 def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 	loop_rate = rospy.Rate(20.0)
 	while not rospy.is_shutdown():
@@ -96,29 +98,29 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 			continue
 
 		# Ref lock used to ensure that get/set of state doesn't happen simultaneously.
-		global ref_lock				
+		global ref_lock
 		ref_lock = True
 
 		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop
 
 		if not track_with_time:
 			# fixed velocity-based path tracking
-			x_ref, y_ref, psi_ref, stop_cmd = grt.get_waypoints(x_curr, y_curr, psi_curr, des_speed)
+			x_ref, y_ref, psi_ref, des_speed, stop_cmd = grt.get_waypoints(x_curr, y_curr, psi_curr)
 			if stop_cmd == True:
-				command_stop = True			
+				command_stop = True
 		else:
 			# trajectory tracking
 			x_ref, y_ref, psi_ref, stop_cmd = grt.get_waypoints(x_curr, y_curr, psi_curr)
 
 			if stop_cmd == True:
 				command_stop = True
-		
+
 		# Update Model
 		kmpc.update_init_cond(x_curr, y_curr, psi_curr, v_curr)
 		kmpc.update_reference(x_ref, y_ref, psi_ref, des_speed)
 
 		ref_lock = False
-		
+
 		if command_stop == False:
 			a_opt, df_opt, is_opt, solv_time = kmpc.solve_model()
 
@@ -142,17 +144,17 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 			mpc_path_msg.xs   = res[0] 	# x_mpc
 			mpc_path_msg.ys   = res[1] 	# y_mpc
 			mpc_path_msg.vs   = res[2]	# v_mpc
-			mpc_path_msg.psis = res[3] 	# psi_mpc	
+			mpc_path_msg.psis = res[3] 	# psi_mpc
 			mpc_path_msg.xr   = res[4] 	# x_ref
 			mpc_path_msg.yr   = res[5] 	# y_ref
-			mpc_path_msg.vr   = [res[6]]# v_ref
+			mpc_path_msg.vr   = res[6]# v_ref
 			mpc_path_msg.psir = res[7] 	# psi_ref
 			mpc_path_msg.df   = res[8]	# d_f
 			mpc_path_msg.acc  = res[9]	# acc
 			mpc_path_pub_obj.publish(mpc_path_msg)
 		else:
 			acc_pub_obj.publish(Float32Msg(-1.0))
-			steer_pub_obj.publish(Float32Msg(0.0))						
+			steer_pub_obj.publish(Float32Msg(0.0))
 
 		loop_rate.sleep()
 
@@ -166,6 +168,7 @@ def start_mpc_node():
 
 	mpc_path_pub = rospy.Publisher("mpc_path", mpc_path, queue_size=2)
 	sub_state  = rospy.Subscriber("state_est", state_est, state_est_callback, queue_size=2)
+	acc_sub = rospy.Subscriber("acc_mode", Float32Msg, acc_sub_callback, queue_size=2)
 
 	# Start up Ipopt/Solver.
 	for i in range(3):
@@ -175,5 +178,5 @@ def start_mpc_node():
 	steer_enable_pub.publish(UInt8Msg(1))
 	pub_loop(acc_pub, steer_pub, mpc_path_pub)
 
-if __name__=='__main__':	
+if __name__=='__main__':
 	start_mpc_node()

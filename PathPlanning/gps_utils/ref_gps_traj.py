@@ -128,7 +128,7 @@ class GPSRefTrajectory():
 		if v_target is not None:
 			return self.__waypoints_using_vtarget(closest_traj_ind, yaw_init) #v_ref given, use distance information for interpolation
 		else:
-			return self.__waypoints_using_time(closest_traj_ind, yaw_init)			  #no v_ref, use time information for interpolation
+			return self.__waypoints_using_time(closest_traj_ind, yaw_init)#no v_ref, use time information for interpolation
 
 	# Visualization Function to plot the vehicle's current position, the full global trajectory, and the local trajectory for MPC.
 	def plot_interpolation(self, x,y):
