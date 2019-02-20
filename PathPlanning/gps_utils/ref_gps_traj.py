@@ -206,6 +206,9 @@ class GPSRefTrajectory():
 	def get_Ys(self):
 		return self.trajectory[:,5]
 
+	def get_all_traj(self):
+		return self.all_traj
+
 	def get_yaws(self):
 		return self.trajectory[:,3]
 
@@ -241,7 +244,9 @@ class GPSRefTrajectory():
 			self.f = plt.figure()
 			plt.ion()
 
-			l1, = plt.plot(self.trajectory[:,4], self.trajectory[:,5], 'k') # global trajectory
+			# global trajectory
+			l1, = plt.plot(traj[:,4], traj[:,5], 'k')
+
 			l2, = plt.plot(self.x_interp, self.y_interp, 'rx')			  	# local trajectory using vehicle's current position
 			l3, = plt.plot(x,y, 'bo')									   	# vehicle's current position
 			self.l_arr = [l1,l2,l3]

@@ -14,7 +14,7 @@ class PlotGPSTrajectory():
 	Also includes the vehicle geometry, thanks to code written by Nitin Kapania, found at:
 	https://github.com/nkapania/Wolverine/blob/master/utils/sim_lib.py
 	'''
-	def __init__(self):		
+	def __init__(self):
 
 		# Load Global Trajectory
 		if rospy.has_param('mat_waypoints'):
@@ -32,13 +32,14 @@ class PlotGPSTrajectory():
 		grt = r.GPSRefTrajectory(mat_filename=mat_name, LAT0=lat0, LON0=lon0, YAW0=yaw0) # only 1 should be valid.
 
 		# Set up Data
+		self.all_traj = grt.get_all_traj()
 		self.x_global_traj = grt.get_Xs()
 		self.y_global_traj = grt.get_Ys()
 		self.x_ref_traj = self.x_global_traj[0]; self.y_ref_traj = self.y_global_traj[0]
 		self.x_mpc_traj = self.x_global_traj[0]; self.y_mpc_traj = self.y_global_traj[0]
 		self.x_vehicle = self.x_global_traj[0];  self.y_vehicle = self.y_global_traj[0]; self.psi_vehicle = yaw0
 		self.df_vehicle = 0.0	# rad	(steering angle)
-		
+
 		# This should be include in a launch file/yaml for the future.
 		self.a = 1.5213  		# m  	(CoG to front axle)
 		self.b = 1.4987  		# m  	(CoG to rear axle)
@@ -47,40 +48,50 @@ class PlotGPSTrajectory():
 
 		# Set up Plot: includes full ("global") trajectory, target trajectory, MPC prediction trajectory, and vehicle.
 		self.f = plt.figure()
-		self.ax = plt.gca()		
+		self.ax = plt.gca()
 		plt.ion()
-		
-		# Trajectory 
-		self.l1, = self.ax.plot(self.x_global_traj, self.y_global_traj, 'k') 			
-		self.l2, = self.ax.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')	
+
+		# Trajectory
+		traj1 = self.all_traj[0]
+		self.l1, = self.ax.plot(traj1[:,4], traj1[:,5], 'k')
+		self.l2, = self.ax.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')
 		self.l3, = self.ax.plot(self.x_mpc_traj, self.y_mpc_traj, 'g*')
-		
+
+		traj2 = self.all_traj[1]
+		self.l4, = self.ax.plot(traj2[:,4], traj2[:,5], 'k')
+		traj3 = self.all_traj[2]
+		self.l5, = self.ax.plot(traj3[:,4], traj3[:,5], 'k')
+		traj4 = self.all_traj[3]
+		self.l6, = self.ax.plot(traj4[:,4], traj4[:,5], 'k')
+		traj5 = self.all_traj[4]
+		self.l7, = self.ax.plot(traj5[:,4], traj5[:,5], 'k')
+
 		# Vehicle coordinates
 		FrontBody, RearBody, FrontAxle, RearAxle, RightFrontTire, RightRearTire, LeftFrontTire, LeftRearTire = \
 			plotVehicle(self.x_vehicle, self.y_vehicle, self.psi_vehicle, self.df_vehicle, self.a, self.b, self.vW, self.rW)
-			
+
 		self.vl0, = self.ax.plot(self.x_vehicle,      self.y_vehicle,      'bo',   MarkerSize= 8)
 		self.vl1, = self.ax.plot(FrontBody[0,:],      FrontBody[1,:],      'gray', LineWidth = 2.5)
-		self.vl2, = self.ax.plot(RearBody[0,:],       RearBody[1,:],       'gray', LineWidth = 2.5) 
+		self.vl2, = self.ax.plot(RearBody[0,:],       RearBody[1,:],       'gray', LineWidth = 2.5)
 		self.vl3, = self.ax.plot(FrontAxle[0,:],      FrontAxle[1,:],      'gray', LineWidth = 2.5)
 		self.vl4, = self.ax.plot(RearAxle[0,:],       RearAxle[1,:],       'gray', LineWidth = 2.5)
 		self.vl5, = self.ax.plot(RightFrontTire[0,:], RightFrontTire[1,:], 'r',    LineWidth = 3)
 		self.vl6, = self.ax.plot(RightRearTire[0,:],  RightRearTire[1,:],  'k',    LineWidth = 3)
 		self.vl7, = self.ax.plot(LeftFrontTire[0,:],  LeftFrontTire[1,:],  'r',    LineWidth = 3)
 		self.vl8, = self.ax.plot(LeftRearTire[0,:],   LeftRearTire[1,:],   'k',    LineWidth = 3)
-		
+
 		plt.xlabel('X (m)'); plt.ylabel('Y (m)')
 		plt.axis('equal')
-		
+
 		# Zoomed Inset Plot: Based off tutorial/code here: http://akuederle.com/matplotlib-zoomed-up-inset
 		self.ax_zoom = zoomed_inset_axes(self.ax, 5, loc=2) # axis, zoom_factor, location (2 = upper left)
 		self.window = 25 # m
-		self.zl1, = self.ax_zoom.plot(self.x_global_traj, self.y_global_traj, 'k') 			
-		self.zl2, = self.ax_zoom.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')	
+		self.zl1, = self.ax_zoom.plot(self.x_global_traj, self.y_global_traj, 'k')
+		self.zl2, = self.ax_zoom.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')
 		self.zl3, = self.ax_zoom.plot(self.x_mpc_traj, self.y_mpc_traj, 'g*')
 		self.zvl0,= self.ax_zoom.plot(self.x_vehicle,      self.y_vehicle,      'bo',   MarkerSize= 8)
 		self.zvl1,= self.ax_zoom.plot(FrontBody[0,:],      FrontBody[1,:],      'gray', LineWidth = 2.5)
-		self.zvl2,= self.ax_zoom.plot(RearBody[0,:],       RearBody[1,:],       'gray', LineWidth = 2.5) 
+		self.zvl2,= self.ax_zoom.plot(RearBody[0,:],       RearBody[1,:],       'gray', LineWidth = 2.5)
 		self.zvl3,= self.ax_zoom.plot(FrontAxle[0,:],      FrontAxle[1,:],      'gray', LineWidth = 2.5)
 		self.zvl4,= self.ax_zoom.plot(RearAxle[0,:],       RearAxle[1,:],       'gray', LineWidth = 2.5)
 		self.zvl5,= self.ax_zoom.plot(RightFrontTire[0,:], RightFrontTire[1,:], 'r',    LineWidth = 3)
@@ -91,7 +102,7 @@ class PlotGPSTrajectory():
 		self.ax_zoom.set_ylim(self.y_vehicle - self.window, self.y_vehicle + self.window)
 		plt.yticks(visible=False)
 		plt.xticks(visible=False)
-		
+
 
 		rospy.init_node('vehicle_plotter', anonymous=True)
 		rospy.Subscriber('state_est', state_est, self.update_state, queue_size=1)
@@ -107,7 +118,7 @@ class PlotGPSTrajectory():
 			self.l3.set_xdata(self.x_mpc_traj); self.l3.set_ydata(self.y_mpc_traj)
 			self.zl2.set_xdata(self.x_ref_traj); self.zl2.set_ydata(self.y_ref_traj)
 			self.zl3.set_xdata(self.x_mpc_traj); self.zl3.set_ydata(self.y_mpc_traj)
-			
+
 			# Update Vehicle Plot.
 			FrontBody, RearBody, FrontAxle, RearAxle, RightFrontTire, RightRearTire, LeftFrontTire, LeftRearTire = \
 				plotVehicle(self.x_vehicle, self.y_vehicle, self.psi_vehicle, self.df_vehicle, self.a, self.b, self.vW, self.rW)
@@ -150,10 +161,10 @@ class PlotGPSTrajectory():
 			self.zvl7.set_ydata(LeftFrontTire[1,:])
 			self.zvl8.set_xdata(LeftRearTire[0,:])
 			self.zvl8.set_ydata(LeftRearTire[1,:])
-			
+
 			self.ax_zoom.set_xlim(self.x_vehicle - self.window, self.x_vehicle + self.window)
 			self.ax_zoom.set_ylim(self.y_vehicle - self.window, self.y_vehicle + self.window)
-			
+
 			self.f.canvas.draw()
 			plt.pause(0.001)
 			r.sleep()
@@ -169,7 +180,7 @@ class PlotGPSTrajectory():
 		# Update the MPC planned (open-loop) trajectory.
 		self.x_mpc_traj = msg.xs
 		self.y_mpc_traj = msg.ys
-		
+
 		# Update the reference for the MPC module.
 		self.x_ref_traj = msg.xr
 		self.y_ref_traj = msg.yr

@@ -3,6 +3,8 @@
 # MPC Command Publisher/Controller Module Interface to the Genesis.
 # This version using the Nonlinear Kinematic Bicycle Model.
 
+# test: rostopic pub /vehicle/go_cmd std_msgs/Bool 'data: True'
+
 ###########################################
 #### ROBOTOS
 ###########################################
@@ -84,8 +86,12 @@ def state_est_callback(msg):
 def acc_sub_callback(msg):
 	grt._update_acc(msg.data)
 
+
+
 def go_cmd_callback(msg):
 	global stopped
+	print "receive command"
+	print msg.data
 
 	if stopped and msg.data:
 		grt._update_traj()
@@ -122,7 +128,7 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 				command_stop = True
 
 		#the car is stopped
-		if v_curr < 0.2 and stop_cmd:
+		if v_curr < 0.7 and stop_cmd:
 			stopped = True
 
 
@@ -138,7 +144,7 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 			rostm = rospy.get_rostime()
 			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
 
-			log_str = "Solve Status: %s, Acc: %.3f, SA: %.3f, ST: %.3f" % (is_opt, a_opt, df_opt, solv_time)
+			log_str = "Solve Status: %s, Acc: %.3f, SA: %.3f, ST: %.3f, V: %.3f" % (is_opt, a_opt, df_opt, solv_time, v_curr)
 			rospy.loginfo(log_str)
 
 			if is_opt == 'Optimal':
@@ -164,7 +170,8 @@ def pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj):
 			mpc_path_msg.acc  = res[9]	# acc
 			mpc_path_pub_obj.publish(mpc_path_msg)
 		else:
-			acc_pub_obj.publish(Float32Msg(0.0))
+			print "The car is stopped!"
+			acc_pub_obj.publish(Float32Msg(-1.0))
 			steer_pub_obj.publish(Float32Msg(0.0))
 
 		loop_rate.sleep()
