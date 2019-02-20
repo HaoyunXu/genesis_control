@@ -84,11 +84,15 @@ class PlotGPSTrajectory():
 		plt.axis('equal')
 
 		# Zoomed Inset Plot: Based off tutorial/code here: http://akuederle.com/matplotlib-zoomed-up-inset
-		self.ax_zoom = zoomed_inset_axes(self.ax, 5, loc=2) # axis, zoom_factor, location (2 = upper left)
+		self.ax_zoom = zoomed_inset_axes(self.ax, 2, loc=2) # axis, zoom_factor, location (2 = upper left)
 		self.window = 25 # m
-		self.zl1, = self.ax_zoom.plot(self.x_global_traj, self.y_global_traj, 'k')
+		self.zl1, = self.ax_zoom.plot(traj1[:,4], traj1[:,5], 'k')
 		self.zl2, = self.ax_zoom.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')
 		self.zl3, = self.ax_zoom.plot(self.x_mpc_traj, self.y_mpc_traj, 'g*')
+		self.zl4, = self.ax_zoom.plot(traj2[:,4], traj2[:,5], 'k')
+		self.zl5, = self.ax_zoom.plot(traj3[:,4], traj3[:,5], 'k')
+		self.zl6, = self.ax_zoom.plot(traj4[:,4], traj4[:,5], 'k')
+		self.zl7, = self.ax_zoom.plot(traj5[:,4], traj5[:,5], 'k')
 		self.zvl0,= self.ax_zoom.plot(self.x_vehicle,      self.y_vehicle,      'bo',   MarkerSize= 8)
 		self.zvl1,= self.ax_zoom.plot(FrontBody[0,:],      FrontBody[1,:],      'gray', LineWidth = 2.5)
 		self.zvl2,= self.ax_zoom.plot(RearBody[0,:],       RearBody[1,:],       'gray', LineWidth = 2.5)
