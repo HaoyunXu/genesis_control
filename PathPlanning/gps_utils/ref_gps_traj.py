@@ -335,8 +335,10 @@ class GPSRefTrajectory():
 		self.acc = newAcc
 
 	def _update_traj(self):
-		if (self.index_traj < 5):
+		if (self.index_traj < 4):
 			self.index_traj = self.index_traj+1
 			self.trajectory = self.all_traj[self.index_traj]
+			#reset acc =0 because the car in front is probably gone
+			self.acc = 0.0
 		else:
 			raise ValueError("no more trajectories")
