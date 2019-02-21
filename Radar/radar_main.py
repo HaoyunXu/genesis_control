@@ -53,12 +53,12 @@ def parseObject(msg):
 
 def radar_draw_loop():
 	rospy.init_node('radar_viz', anonymous = True)
-	#rospy.Subscriber('/image_raw', Image, parseImg, queue_size = 2)
+	rospy.Subscriber('/image_raw', Image, parseImg, queue_size = 2)
 	rospy.Subscriber('/mando_radar/esr_track', ESRTrackReport, parseRadar, queue_size = 2)
 	rospy.Subscriber('/mando_camera/object_detection', MandoObjectReport, parseObject, queue_size = 2)
 	r = rospy.Rate(10.0)
 
-	f, ax1 = plt.subplots(1)
+	f, (ax1,ax2) = plt.subplots(2)
 
 	plt.ion()
 
@@ -66,15 +66,15 @@ def radar_draw_loop():
 	global img, radar
 	while not rospy.is_shutdown():
 		
-		#if img is None:
-			#print('Waiting: img')
-			#r.sleep()
-			#continue
-		#img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_AREA)
-		#ax1.imshow(img)
+		if img is None:
+			print('Waiting: img')
+			r.sleep()
+			continue
+		img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_AREA)
+		ax1.imshow(img)
 
 
-		#ax2.clear()
+		ax2.clear()
 
 		for i in range(64):
 			if 'status' in radar[i].keys() and radar[i]['status'] > 0:
@@ -85,28 +85,28 @@ def radar_draw_loop():
 
 				obj_x = distance * math.cos(heading)
 				obj_y = distance * math.sin(heading)
-				#ax1.plot(obj_x, obj_y, 'rx', markersize=8)
+				ax2.plot(obj_x, obj_y, 'rx', markersize=8)
 
+				# --------- Basic Velocity Filter ---------------
+				#if velocity > 0.1:
+				#	ax1.plot(obj_x, obj_y, 'rx', markersize=8)	
+				#	print velocity
 				# ------------------------
-				if velocity > 0.1:
-					ax1.plot(obj_x, obj_y, 'rx', markersize=8)	
-					print velocity
-				# ------------------------
 
-		#for i in range(8):
-		#	if 'obj_id' in objects[i].keys() and objects[i]['obj_id'] > 0:
+		for i in range(8):
+			if 'obj_id' in objects[i].keys() and objects[i]['obj_id'] > 0:
 
-		#		x = objects[i]['x']
-		#		y = objects[i]['y']
-		#		valid = objects[i]['valid']
+				x = objects[i]['x']
+				y = objects[i]['y']
+				valid = objects[i]['valid']
 
-		#		if valid > 0:
-		#			ax2.plot(x, y, 'kx', markersize=8)
-		#		else:
-		#			ax2.plot(x, y, 'gx', markersize=8)
+				if valid > 0:
+					ax2.plot(x, y, 'kx', markersize=8)
+				else:
+					ax2.plot(x, y, 'gx', markersize=8)
 		
 		plt.xlim([-6, 6])
-		plt.ylim([-1, 50])
+		plt.ylim([-1, 12])
 		plt.grid()
 
 		f.canvas.draw()
