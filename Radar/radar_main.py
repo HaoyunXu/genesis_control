@@ -33,7 +33,7 @@ def parseRadar(msg):
 	radar[index]['status'] = status
 	radar[index]['mode'] = mode
 	radar[index]['dist'] = dist
-	radar[index]['vel'] = vel
+	radar[index]['vel'] = vel   # m/s
 	radar[index]['acc'] = acc
 	radar[index]['angle'] = angle
 
@@ -81,11 +81,20 @@ def radar_draw_loop():
 				
 				heading  = -math.radians(radar[i]['angle']) + math.pi/2
 				distance = radar[i]['dist']
-				velocity = radar[i]['vel']
+				
+				velocity = radar[i]['vel']      # m/s
+				velocity_kmph = velocity * 3.6  # km/h
+				
 
 				obj_x = distance * math.cos(heading)
 				obj_y = distance * math.sin(heading)
-				ax2.plot(obj_x, obj_y, 'rx', markersize=8)
+
+				#Keep targets in front of the car
+				if abs(obj_x) < 30 and abs(obj_y) < 40:
+					ax2.plot(obj_x, obj_y, 'rx', markersize=8)
+					print 'Velocity_kmph = ', velocity_kmph    # When comparing with wheel speed, they are approximatively the same. 
+										   # Try to plot both speeds and compare them
+										   # -> Try to substract both to get relative speed
 
 				# --------- Basic Velocity Filter ---------------
 				#if velocity > 0.1:
@@ -105,8 +114,8 @@ def radar_draw_loop():
 				else:
 					ax2.plot(x, y, 'gx', markersize=8)
 		
-		plt.xlim([-6, 6])
-		plt.ylim([-1, 12])
+		plt.xlim([-30, 30])
+		plt.ylim([-1, 40])
 		plt.grid()
 
 		f.canvas.draw()
