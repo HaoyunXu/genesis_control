@@ -15,7 +15,7 @@ objects = [dict() for i in range(8)]
 def parseImg(msg):
 	global img
 	try:
-		img = CvBridge().imgmsg_to_cv2(msg, "rgb8")		
+		img = CvBridge().imgmsg_to_cv2(msg, "rgb8")
 	except CvBridgeError as e:
 		print e
 
@@ -29,7 +29,7 @@ def parseRadar(msg):
 	vel    = msg.range_rate
 	acc    = msg.range_accel
 	angle  = msg.angle
-	
+
 	radar[index]['status'] = status
 	radar[index]['mode'] = mode
 	radar[index]['dist'] = dist
@@ -45,11 +45,13 @@ def parseObject(msg):
 	valid   = msg.object_valid
 	x      = msg.range
 	y      = msg.position_y
+	motion_status = msg.motion_status
 
 	objects[index]['obj_id'] = obj_id
 	objects[index]['valid'] = valid
 	objects[index]['x'] = x
 	objects[index]['y'] = y
+	objects[index]['motion_status'] = motion_status
 
 def radar_draw_loop():
 	rospy.init_node('radar_viz', anonymous = True)
@@ -62,10 +64,10 @@ def radar_draw_loop():
 
 	plt.ion()
 
-	
+
 	global img, radar
 	while not rospy.is_shutdown():
-		
+
 		if img is None:
 			print('Waiting: img')
 			r.sleep()
@@ -78,13 +80,13 @@ def radar_draw_loop():
 
 		for i in range(64):
 			if 'status' in radar[i].keys() and radar[i]['status'] > 0:
-				
+
 				heading  = -math.radians(radar[i]['angle']) + math.pi/2
 				distance = radar[i]['dist']
-				
+
 				velocity = radar[i]['vel']      # m/s
 				velocity_kmph = velocity * 3.6  # km/h
-				
+
 
 				obj_x = distance * math.cos(heading)
 				obj_y = distance * math.sin(heading)
@@ -92,13 +94,13 @@ def radar_draw_loop():
 				#Keep targets in front of the car
 				if abs(obj_x) < 30 and abs(obj_y) < 40:
 					ax2.plot(obj_x, obj_y, 'rx', markersize=8)
-					print 'Velocity_kmph = ', velocity_kmph    # When comparing with wheel speed, they are approximatively the same. 
+					#print 'Velocity_kmph = ', velocity_kmph    # When comparing with wheel speed, they are approximatively the same.
 										   # Try to plot both speeds and compare them
 										   # -> Try to substract both to get relative speed
 
 				# --------- Basic Velocity Filter ---------------
 				#if velocity > 0.1:
-				#	ax1.plot(obj_x, obj_y, 'rx', markersize=8)	
+				#	ax1.plot(obj_x, obj_y, 'rx', markersize=8)
 				#	print velocity
 				# ------------------------
 
@@ -108,18 +110,21 @@ def radar_draw_loop():
 				x = objects[i]['x']
 				y = objects[i]['y']
 				valid = objects[i]['valid']
+				motion_status = objects[i]['motion_status']
 
+				# x and y are permuted, this is why we have plot(y,x)
 				if valid > 0:
-					ax2.plot(x, y, 'kx', markersize=8)
+					ax2.plot(y, x, 'kx', markersize=8)
+					print motion_status
 				else:
-					ax2.plot(x, y, 'gx', markersize=8)
-		
+					ax2.plot(y, x, 'gx', markersize=8)
+
 		plt.xlim([-30, 30])
 		plt.ylim([-1, 40])
 		plt.grid()
 
 		f.canvas.draw()
-		
+
 		plt.pause(0.001)
 		r.sleep()
 
