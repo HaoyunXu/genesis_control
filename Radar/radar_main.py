@@ -29,6 +29,7 @@ def parseRadar(msg):
 	vel    = msg.range_rate
 	acc    = msg.range_accel
 	angle  = msg.angle
+	width = msg.width # m
 
 	radar[index]['status'] = status
 	radar[index]['mode'] = mode
@@ -36,6 +37,7 @@ def parseRadar(msg):
 	radar[index]['vel'] = vel   # m/s
 	radar[index]['acc'] = acc
 	radar[index]['angle'] = angle
+	radar[index]['width'] = width
 
 def parseObject(msg):
 	global objects
@@ -45,13 +47,20 @@ def parseObject(msg):
 	valid   = msg.object_valid
 	x      = msg.range
 	y      = msg.position_y
+	range_rate = msg.range_rate
 	motion_status = msg.motion_status
+	object_age = msg.object_age
+	object_lane = msg.object_lane
 
 	objects[index]['obj_id'] = obj_id
 	objects[index]['valid'] = valid
 	objects[index]['x'] = x
 	objects[index]['y'] = y
-	objects[index]['motion_status'] = motion_status
+	objects[index]['range_rate'] = range_rate       # m/s
+	objects[index]['motion_status'] = motion_status # stationary (4), stopped(3), oncoming (2), preceding(1), undecided(0)
+	objects[index]['object_age'] = object_age
+	objects[index]['object_lane'] = object_lane
+
 
 def radar_draw_loop():
 	rospy.init_node('radar_viz', anonymous = True)
@@ -81,19 +90,20 @@ def radar_draw_loop():
 		for i in range(64):
 			if 'status' in radar[i].keys() and radar[i]['status'] > 0:
 
-				heading  = -math.radians(radar[i]['angle']) + math.pi/2
+				width = radar[i]['width']       # Not very accurate. Car: usually 1 meter. Pedestrians: 0 meter
+				velocity = radar[i]['vel']      # m/s
 				distance = radar[i]['dist']
 
-				velocity = radar[i]['vel']      # m/s
-				velocity_kmph = velocity * 3.6  # km/h
-
+				heading  = -math.radians(radar[i]['angle']) + math.pi/2
 
 				obj_x = distance * math.cos(heading)
 				obj_y = distance * math.sin(heading)
+				velocity_kmph = velocity * 3.6  # km/h
 
 				#Keep targets in front of the car
-				if abs(obj_x) < 30 and abs(obj_y) < 40:
+				if abs(obj_x) < 6 and abs(obj_y) < 40:
 					ax2.plot(obj_x, obj_y, 'rx', markersize=8)
+					#print width
 					#print 'Velocity_kmph = ', velocity_kmph    # When comparing with wheel speed, they are approximatively the same.
 										   # Try to plot both speeds and compare them
 										   # -> Try to substract both to get relative speed
@@ -111,13 +121,23 @@ def radar_draw_loop():
 				y = objects[i]['y']
 				valid = objects[i]['valid']
 				motion_status = objects[i]['motion_status']
+				range_rate = objects[i]['range_rate']
+				object_age = objects[i]['object_age']        # Pretty accurate. Unit ? [not time, probably instance]. max = 254
+				object_lane = objects[i]['object_lane']
+
 
 				# x and y are permuted, this is why we have plot(y,x)
 				if valid > 0:
 					ax2.plot(y, x, 'kx', markersize=8)
-					print motion_status
+					print 'motion status = ', motion_status
+					print 'age = ', object_age
+					print 'range rate = ', range_rate, 'm/s'
+					print '------'
 				else:
 					ax2.plot(y, x, 'gx', markersize=8)
+					print 'Not valid'
+					print 'range rate = ', range_rate
+					print '------'
 
 		plt.xlim([-30, 30])
 		plt.ylim([-1, 40])
