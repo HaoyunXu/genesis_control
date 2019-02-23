@@ -133,6 +133,8 @@ def radar_draw_loop():
 					print 'age = ', object_age
 					print 'range rate = ', range_rate, 'm/s'
 					print '------'
+					plt.text(y + 0.3, x + 0.3, 'car', fontsize=10) #Just an example
+					
 				else:
 					ax2.plot(y, x, 'gx', markersize=8)
 					print 'Not valid'
