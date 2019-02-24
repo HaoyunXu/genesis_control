@@ -30,6 +30,7 @@ def parseRadar(msg):
 	acc    = msg.range_accel
 	angle  = msg.angle
 	width = msg.width # m
+	rolling_count = msg.rolling_count
 
 	radar[index]['status'] = status
 	radar[index]['mode'] = mode
@@ -38,6 +39,7 @@ def parseRadar(msg):
 	radar[index]['acc'] = acc
 	radar[index]['angle'] = angle
 	radar[index]['width'] = width
+	radar[index]['rolling_count'] = rolling_count
 
 def parseObject(msg):
 	global objects
@@ -88,11 +90,13 @@ def radar_draw_loop():
 		ax2.clear()
 
 		for i in range(64):
-			if 'status' in radar[i].keys() and radar[i]['status'] > 0:
+			if 'status' in radar[i].keys() and radar[i]['status'] > 1:
 
 				width = radar[i]['width']       # Not very accurate. Car: usually 1 meter. Pedestrians: 0 meter
 				velocity = radar[i]['vel']      # m/s
 				distance = radar[i]['dist']
+				rolling_count = radar[i]['rolling_count']
+
 
 				heading  = -math.radians(radar[i]['angle']) + math.pi/2
 
@@ -127,19 +131,19 @@ def radar_draw_loop():
 
 
 				# x and y are permuted, this is why we have plot(y,x)
-				if valid > 0:
-					ax2.plot(y, x, 'kx', markersize=8)
+				if valid > 0 and object_age > 5:
+					ax2.plot(-y, x, 'ko', markersize=8)
 					print 'motion status = ', motion_status
 					print 'age = ', object_age
 					print 'range rate = ', range_rate, 'm/s'
 					print '------'
-					plt.text(y + 0.3, x + 0.3, 'car', fontsize=10) #Just an example
-					
-				else:
-					ax2.plot(y, x, 'gx', markersize=8)
-					print 'Not valid'
-					print 'range rate = ', range_rate
-					print '------'
+					plt.text(-y + 0.3, x + 0.3, 'car', fontsize=10) #Just an example
+
+				# else:
+				# 	ax2.plot(-y, x, 'go', markersize=8)
+				# 	print 'Not valid'
+				# 	print 'range rate = ', range_rate
+				# 	print '------'
 
 		plt.xlim([-30, 30])
 		plt.ylim([-1, 40])
