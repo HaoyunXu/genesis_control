@@ -32,7 +32,8 @@ def parseRadar(msg):
 	width = msg.width # m
 	rolling_count = msg.rolling_count
 
-	radar[index]['status'] = status
+	radar[index]['status'] = status  # New_Coasted_Target(7), Invalid_Coasted_Target(6), Merged_Target(5), Coasted_Target(4), 
+                                         # Updated_Target(3), New_Updated_Target(2), New_Target(1), No_Target(0)
 	radar[index]['mode'] = mode
 	radar[index]['dist'] = dist
 	radar[index]['vel'] = vel   # m/s
@@ -90,7 +91,7 @@ def radar_draw_loop():
 		ax2.clear()
 
 		for i in range(64):
-			if 'status' in radar[i].keys() and radar[i]['status'] > 1:
+			if 'status' in radar[i].keys() and radar[i]['status'] > 2:
 
 				width = radar[i]['width']       # Not very accurate. Car: usually 1 meter. Pedestrians: 0 meter
 				velocity = radar[i]['vel']      # m/s
@@ -103,6 +104,8 @@ def radar_draw_loop():
 				obj_x = distance * math.cos(heading)
 				obj_y = distance * math.sin(heading)
 				velocity_kmph = velocity * 3.6  # km/h
+				
+				print 'status = ', radar[i]['status']  # A lot of 3 (updated targets) and 4 (coasted targets) What does it mean ? 
 
 				#Keep targets in front of the car
 				if abs(obj_x) < 6 and abs(obj_y) < 40:
