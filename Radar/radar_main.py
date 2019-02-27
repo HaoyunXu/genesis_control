@@ -91,7 +91,7 @@ def radar_draw_loop():
 		ax2.clear()
 
 		for i in range(64):
-			if 'status' in radar[i].keys() and radar[i]['status'] > 2:
+			if 'status' in radar[i].keys() and radar[i]['status'] > 1:
 
 				width = radar[i]['width']       # Not very accurate. Car: usually 1 meter. Pedestrians: 0 meter
 				velocity = radar[i]['vel']      # m/s
@@ -105,7 +105,7 @@ def radar_draw_loop():
 				obj_y = distance * math.sin(heading)
 				velocity_kmph = velocity * 3.6  # km/h
 				
-				print 'status = ', radar[i]['status']  # A lot of 3 (updated targets) and 4 (coasted targets) What does it mean ? 
+				#print 'status = ', radar[i]['status']  # A lot of 3 (updated targets) and 4 (coasted targets) What does it mean ? 
 
 				#Keep targets in front of the car
 				if abs(obj_x) < 6 and abs(obj_y) < 40:
@@ -134,21 +134,26 @@ def radar_draw_loop():
 
 
 				# x and y are permuted, this is why we have plot(y,x)
-				if valid > 0 and object_age > 5:
-					ax2.plot(-y, x, 'ko', markersize=8)
-					print 'motion status = ', motion_status
+				if valid > 0 and object_age > 0:
+					ax2.plot(-y, x, 'go', markersize=8)
+					#print 'motion status = ', motion_status
 					print 'age = ', object_age
-					print 'range rate = ', range_rate, 'm/s'
-					print '------'
-					plt.text(-y + 0.3, x + 0.3, 'car', fontsize=10) #Just an example
+					#print 'range rate = ', range_rate, 'm/s'
+					#print '------'
+					plt.text(-y + 0.5, x + 0.5, 'Object valid ', fontsize=10) #Just an example
+					#plt.text(-y + 4, x + 0.5, 'age = ', fontsize=10)
+					#plt.text(-y + 8, x + 0.9, object_age, fontsize=10)
+						
 
-				# else:
-				# 	ax2.plot(-y, x, 'go', markersize=8)
-				# 	print 'Not valid'
-				# 	print 'range rate = ', range_rate
-				# 	print '------'
+				else:
+			 		ax2.plot(-y, x, 'ro', markersize=8)
+				 	print 'Not valid'
+				 	#print 'range rate = ', range_rate
+					plt.text(-y + 0.5, x + 0.5, 'Object not valid', fontsize=10)
+					print object_age
+				 	print '------'
 
-		plt.xlim([-30, 30])
+		plt.xlim([-20, 20])
 		plt.ylim([-1, 40])
 		plt.grid()
 
