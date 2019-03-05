@@ -27,7 +27,7 @@ end
 
 if has_param("track_using_time") && has_param("target_vel")
 	track_with_time = get_param("track_using_time")
-	target_vel = get_param("target_vel")	
+	target_vel = get_param("target_vel")
 else
 	error("Invalid rosparam trajectory definition: track_using_time and target_vel")
 end
@@ -52,7 +52,7 @@ end
 #### Global Variables for Callbacks/Control Loop.
 ###########################################
 push!(LOAD_PATH, scripts_dir * "mpc_utils")
-import GPSKinMPCPathFollowerFrenetLinLongGurobi 
+import GPSKinMPCPathFollowerFrenetLinLongGurobi
 import GPSKinMPCPathFollowerFrenetLinLatGurobi
 
 
@@ -145,9 +145,9 @@ function convertS2XY(acc_opt, d_f_opt)
 	for i in 1:kmpcLinLongGurobi.N
         # equations of motion wrt CoG
         bta[i] = atan( kmpcLinLongGurobi.L_b / (kmpcLinLongGurobi.L_a + kmpcLinLongGurobi.L_b) * tan(d_f[i]) )
-		x_mpc[i+1]   = x_mpc[i]   + kmpcLinLongGurobi.dt*( v_mpc[i]*cos(psi_mpc[i] + bta[i]) ) 
-		y_mpc[i+1]   = y_mpc[i]   + kmpcLinLongGurobi.dt*( v_mpc[i]*sin(psi_mpc[i] + bta[i]) ) 
-		psi_mpc[i+1] = psi_mpc[i] + kmpcLinLongGurobi.dt*( v_mpc[i]/kmpcLinLongGurobi.L_b*sin(bta[i]) ) 
+		x_mpc[i+1]   = x_mpc[i]   + kmpcLinLongGurobi.dt*( v_mpc[i]*cos(psi_mpc[i] + bta[i]) )
+		y_mpc[i+1]   = y_mpc[i]   + kmpcLinLongGurobi.dt*( v_mpc[i]*sin(psi_mpc[i] + bta[i]) )
+		psi_mpc[i+1] = psi_mpc[i] + kmpcLinLongGurobi.dt*( v_mpc[i]/kmpcLinLongGurobi.L_b*sin(bta[i]) )
         v_mpc[i+1]   = v_mpc[i]   + kmpcLinLongGurobi.dt*( acc[i] )
 	end
 
@@ -161,7 +161,7 @@ function compRefXYfromCurv(s0, s_max, k_coeff, hor)
 	# alternatively, could just use kin. model to forward integrate in time
 	# X = X_des - e_y * sin(psi), Y = Y_des + e_y*cos(psi)
 	global x_ref, y_ref, psi_ref
-	
+
 	ds = 0.25
 	s_interp = collect(0:ds:s_max)
 	x_interp = zeros(length(s_interp))
@@ -188,7 +188,7 @@ function compRefXYfromCurv(s0, s_max, k_coeff, hor)
 
 	return x_interp[1:max(1,tmp):end], y_interp[1:max(1,tmp):end], psi_interp[1:max(1,tmp):end]
 end
-	
+
 
 # publishing loop
 function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
@@ -222,8 +222,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		global s_ref, K_coeff, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref
 		global a_opt, df_opt 	# contains current optimal inut and steering angle
 
-		if ! track_with_time		
-			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr, des_speed)
+		if ! track_with_time
 			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr)
 			println("get_waypoints_frenet with velocity tracking not yet implemented - using time-tracking")
 			if stop_cmd == true
@@ -231,7 +230,6 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			end
 
 		else  # current version, time-based
-			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr);
 			# return reference points as well as current state (in Frenet framework)
 			# last three only used for visualization purposesbt
 			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr)
@@ -250,7 +248,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 
 	    ref_lock = false
-		
+
 		if command_stop == false
 
 			# disable garbage collection (makes optimization code run faster)
@@ -280,19 +278,19 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		    # do not apply any inputs during warm start
 		    if it_num <= num_warmStarts
 		    	it_num = it_num + 1;
-		    	continue					
+		    	continue
 		    end
 
 			publish( acc_pub_obj,   Float32Msg(a_opt) )
 			publish( steer_pub_obj, Float32Msg(df_opt) )
 			# publish( solv_pub_obj, Float32Msg(solv_time_long_gurobi1 + solv_time_lat_gurobi1) )
-    		
+
     		solv_time_gurobi_tot_all[it_num+1] = solv_time_long_gurobi1 + solv_time_lat_gurobi1
 
     		# reconstruct x_ref and y_ref from s,c(s)
 			x_ref_recon, y_ref_recon, psi_ref_recon = compRefXYfromCurv(s_curr, s_ref[end]-s_ref[1], K_coeff, length(s_ref)-1)
 
-			# compute the predicted x,y 
+			# compute the predicted x,y
 			x_mpc, y_mpc, v_mpc, psi_mpc = convertS2XY(a_pred_gurobi, df_pred_gurobi)	# this function converts the (s,c(s)) to (X,Y)
 
 			# save relevant messages
@@ -308,7 +306,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			mpc_path_msg.vs   = v_mpc	# v_mpc; containts v_curr
 			mpc_path_msg.psis = psi_mpc 	# psi_mpc; containts psi_curr
 			# Optimal solution of MPC problem (in Frenet)
-			mpc_path_msg.ss_fren   	=  s_pred_gurobi		# contains s_0 
+			mpc_path_msg.ss_fren   	=  s_pred_gurobi		# contains s_0
 			mpc_path_msg.vs_fren   	=  v_pred_gurobi		# contains v_0
 			mpc_path_msg.eys_fren   = ey_pred_gurobi	# contains ey_0
 			mpc_path_msg.epsis_fren = epsi_pred_gurobi 	# psi_mpc
@@ -347,7 +345,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 				println(" avg comput time tot GUROBI: $(mean(solv_time_gurobi_tot_all[5:end])*1000) ms")
 
 			end
-			
+
 
 
 			# println("--- max comput time Long GUROBI 2: $(maximum(solv_time_long_gurobi2_all[5:end])*1000) ms ---")
@@ -374,15 +372,15 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 		else
 			publish( acc_pub_obj,   Float32Msg(-1.0) )
-			publish( steer_pub_obj, Float32Msg(0.0) )		
+			publish( steer_pub_obj, Float32Msg(0.0) )
 		end
-		
+
 	    rossleep(loop_rate)
 	end
 
-	# gc_enable(true) 
+	# gc_enable(true)
 
-end	
+end
 
 function start_mpc_node()
     init_node("dbw_mpc_pf")
@@ -398,11 +396,11 @@ function start_mpc_node()
 	publish(acc_enable_pub, UInt8Msg(2))
 	publish(steer_enable_pub, UInt8Msg(1))
 
-    pub_loop(acc_pub, steer_pub, mpc_path_pub)    
+    pub_loop(acc_pub, steer_pub, mpc_path_pub)
 end
 
 if ! isinteractive()
-	# try 
+	# try
     	start_mpc_node()
     # catch x
     	# println("222")

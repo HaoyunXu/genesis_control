@@ -144,6 +144,10 @@ def radar_draw_loop():
 					plt.text(-y + 4, x + 0.5, range_rate, fontsize=10)
 					#plt.text(-y + 4, x + 0.5, 'age = ', fontsize=10)
 					#plt.text(-y + 8, x + 0.9, object_age, fontsize=10)
+					print 'object: ' + str(i)
+					print 'x: ' + str(x)
+					print 'y: ' + str(y)
+					print 'label: car'
 
 
 				else:

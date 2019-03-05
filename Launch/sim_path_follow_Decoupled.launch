@@ -7,7 +7,7 @@
 	<!-- <rosparam command="load" file="$(find genesis_path_follower)/launch/rfs.yaml" ns="vehicle" /> -->
 	<rosparam command="load" file="$(find genesis_control)/paths/cpg.yaml" ns="vehicle"/>
 
-  <param name="vehicle/scripts_dir" type="str" value="$(find genesis_control)/PathPlanningDecoupled/" />
+  <param name="vehicle/scripts_dir" type="str" value="$(find genesis_control)/PathPlanningAndMPC_Decoupled/" />
 
   <!-- The trajectory can be generated using recorded time or a target velocity. -->
   <!-- Set track_using_time to True to allow for time-varying velocity. -->
