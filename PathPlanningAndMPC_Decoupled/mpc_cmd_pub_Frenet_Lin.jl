@@ -25,11 +25,10 @@ if has_param("mat_waypoints")
 else
 	error("No Matfile of waypoints provided!")
 end
-#Modified by J&B
+
 if has_param("track_using_time") #&& has_param("target_vel")
 	track_with_time = get_param("track_using_time")
 	#target_vel = get_param("target_vel")
-	#Modified by J&B
 else
 	error("Invalid rosparam trajectory definition: track_using_time and target_vel")
 end
@@ -67,7 +66,7 @@ const kmpcLinLatGurobi = GPSKinMPCPathFollowerFrenetLinLatGurobi 	# experimental
 #### Reference GPS Trajectory Module
 ###########################################
 # Access Python modules for path processing.  Ugly way of doing it, can seek to clean this up in the future.
-using PyCall
+using PyCall   ## Use python function in Julia##
 const gps_utils_loc = scripts_dir * "gps_utils"
 unshift!(PyVector(pyimport("sys")["path"]), gps_utils_loc) # append the current directory to Python path
 @pyimport ref_gps_traj as rgt
@@ -84,13 +83,12 @@ s_ref = zeros(length(t_ref))
 a_opt = 0.0
 df_opt = 0.0
 
-#Modified by J&B
 # if target_vel > 0.0
 # 	des_speed = target_vel
 # else
 # 	des_speed = 0.00
 # end
-#Modified by J&B
+des_speed = 0.00
 
 ref_lock = false	# avoid racing
 received_reference = false 		#TODO: can use time from last reading to see if data is fresh for MPC update.
@@ -102,13 +100,36 @@ s_curr = 0.0		# frenet
 ey_curr = 0.0		# frenet
 epsi_curr = 0.0		# frenet
 K_coeff = zeros(4)	# assuming curvature is described by polynomial of order 3
+v_f = 3.0
 stopped = false
 command_stop = false
 
 function vel_ref_callback(msg::Float32Msg)
-	grt[:_update_acc](msg.data)
+	global v_f
+	v_f = msg.data
 end
-test = 0;
+
+#Modified by J&B
+function go_cmd_callback(msg::BoolMsg)
+	global stopped, v_f, command_stop #, test
+	println("receive command")
+	println(msg.data)
+	if stopped && msg.data
+		stopped = false
+		command_stop = false
+		v_f = 5.0
+		#test = 1000
+	end
+end
+#Modified by J&B
+
+
+###############
+# Function to stop the car
+
+###############
+
+
 ###########################################
 #### State Estimation Callback.
 ###########################################
@@ -126,19 +147,7 @@ function state_est_callback(msg::state_est)
 	# end
 end
 
-#Modified by J&B
-function go_cmd_callback(msg::BoolMsg)
-	global stopped, a_opt, test
-	println("receive command")
-	println(msg.data)
-	if stopped && msg.data
-		grt[:_update_traj]()
-		stopped = false
-		a_opt = 1.0
-		#test = 1000
-	end
-end
-#Modified by J&B
+
 
 # x_mpc, y_mpc, psi_mpc = convertS2XY(res)	# this function converts the (s,c(s)) to (X,Y)
 function convertS2XY(acc_opt, d_f_opt)
@@ -214,6 +223,7 @@ end
 function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 	# println("start pub_loop")
+	global v_f
 	control_rate = 50 	# max 50 Hz
     loop_rate = Rate(control_rate)
 
@@ -227,13 +237,12 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 	gc()	# clear garbage
 	# can disable GC here, but memory consumption grows very quickly
 	# gc_enable(false) # enable later on
-
     while ! is_shutdown()
 	    if ! received_reference		# Reference not received so don't use MPC yet.
 	        rossleep(loop_rate)
 	        continue
 	    end
-		#global test
+
 	    global ref_lock				# Ref lock used to ensure that get/set of state doesn't happen simultaneously.
 	    ref_lock = true
 
@@ -241,14 +250,23 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		global s_ref, K_coeff, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref
 		global a_opt, df_opt 	# contains current optimal inut and steering angle
 
+		v_desired = v_f;
 		if ! track_with_time
-			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,1)
+			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr, des_speed)
+			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_desired,v_curr)  ####editted by Jiakai
 			# println("get_waypoints_frenet with velocity tracking not yet implemented - using time-tracking")
-			if stop_cmd == true
+			println("command stop:")
+			println(command_stop)
+			if (s_curr < 102 && s_curr > 98) || (s_curr < 52 && s_curr > 48)
+				stopped = true
+			end
+			if stopped        #stop_cmd == true
 				command_stop = true
+				println(12345)
 			end
 
 		else  # current version, time-based
+			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr);
 			# return reference points as well as current state (in Frenet framework)
 			# last three only used for visualization purposesbt
 			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr)
@@ -257,19 +275,6 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			end
 		end
 
-		#added by Jiakai and Byron
-
-		if v_curr<0.7 && stop_cmd #&& test == 0
-			stopped=true;
-			println(v_curr)
-			println("stopped")
-			#test=2
-		# elseif test > 0
-		# 	test = test -1
-		end
-
-
-		#added by Jiakai and Byron
 
 		# fix epsi_curr if not good (thanks, Vijay!)
 		if epsi_curr > pi
@@ -281,15 +286,27 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 	    ref_lock = false
 
-		if stopped == false
+
+		if command_stop == false
 			# disable garbage collection (makes optimization code run faster)
 			gc_enable(false) # enable later on
 
 			# println("================  iteration $(it_num) =====================")
+
 			# a_opt=u0 ; a_pred = (u_0, u_1, ... u_{N-1})
+
+			################
+			# v_ref = zeros(17)
+
+			# v_ref[1] = v_curr
+			# for i = 2 : 17
+			# 	v_ref[i] = v_ref[i-1] + (v_f - v_curr)/16
+			# 	println("vref: ")
+			# 	println(v_ref[i])
+			# end
+			################
 			a_opt_gurobi, a_pred_gurobi, s_pred_gurobi, v_pred_gurobi, solv_time_long_gurobi1, is_opt_long = kmpcLinLongGurobi.solve_gurobi(s_curr, v_curr, a_opt, s_ref, v_ref)
 			solv_time_long_gurobi1_all[it_num+1] = solv_time_long_gurobi1
-
 
 			df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
 			solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
@@ -297,22 +314,27 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			rostm = get_rostime()
 			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
 
-			log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Vel: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1, v_curr)
+			log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Velocity: %.3f, Reference velocity: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1,v_curr,v_f)
 			loginfo(log_str_long_Gurobi)
 
 			log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
 		    loginfo(log_str_lat)
-			if v_pred_gurobi[1] < 4.0
-				println(ey_curr)
-				println(epsi_curr)
-				println(df_opt)
-				println(s_pred_gurobi)
-				println(v_pred_gurobi)
-				println(K_coeff)
-			end
-			# update current input for next calculation
+
 			a_opt = a_opt_gurobi
 			df_opt = df_opt_gurobi
+
+			# if a_opt < 0.1 && a_opt > 0
+			# 	a_opt = 0.1
+			# end
+			#
+			# if a_opt > -0.1 && a_opt < 0
+			# 	a_opt = -0.1
+			# end
+
+			# make df_opt be 0 if v_curr is less than 0.1
+			if v_curr < 0.1
+				df_opt = 0.0;
+			end
 
 		    # do not apply any inputs during warm start
 		    if it_num <= num_warmStarts
@@ -431,10 +453,8 @@ function start_mpc_node()
 
     mpc_path_pub = Publisher("mpc_path", mpc_path, queue_size=2)
 	sub_state  = Subscriber("state_est", state_est, state_est_callback, queue_size=2)
-	#added by Jiakai and Byron
+	car_front_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
 	go_cmd_sub = Subscriber("go_cmd", BoolMsg, go_cmd_callback, queue_size=2)
-	####car_fonrt_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
-	#added by Jiakai and Byron
 
 	publish(acc_enable_pub, UInt8Msg(2))
 	publish(steer_enable_pub, UInt8Msg(1))

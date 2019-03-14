@@ -68,7 +68,7 @@ module GPSKinMPCPathFollowerFrenetLinLongGurobi
 
 	# define cost functions
     C_s = 20			# track progress
-	C_v = 10;			# ref velocity tracking weight			
+	C_v = 100;			# ref velocity tracking weight			
 	C_acc = 0
 	C_dacc = 11;		# 20 too high; 10 OK for med speed; 10 a big jerky for high speed; 13 too high
 
@@ -85,7 +85,7 @@ module GPSKinMPCPathFollowerFrenetLinLongGurobi
 
 	x_lb = [	-largeNumber	# make sure car doesnt travel more than largeNumber [m]
 				v_min		]
-	x_ub = [	largeNumber
+	x_ub = [	largeNumber		
 				v_max		]
 
 	u_lb = -a_max
@@ -198,6 +198,122 @@ module GPSKinMPCPathFollowerFrenetLinLongGurobi
 	beq_gurobi[1:nx_tilde] = beq_gurobi[1:nx_tilde] + A_tilde*x_tilde_0_init 	# PARAMETER: depends on x0
 
 
+	#**************************************
+	#editted by Jiakai set up the terminal constriant
+	n_ineq = 47  # number of the terminal constraints
+	A_inv = 
+	[    0   -0.9578   -0.2873
+         0   -0.8575   -0.5145
+         0   -0.8944   -0.4472
+         0   -0.8192   -0.5735
+         0   -0.9285   -0.3714
+    0.9436    0.3303    0.0236
+    0.8714    0.4793    0.1046
+    0.9275    0.3710    0.0464
+    0.8915    0.4458    0.0802
+    0.7194    0.6474    0.2518
+    0.9281    0.3712    0.0278
+    0.9700    0.2425    0.0146
+    0.9806    0.1961         0
+    0.9115    0.4102    0.0319
+    0.7873    0.5905    0.1772
+    0.8296    0.5392    0.1452
+    0.7856    0.5892    0.1886
+    0.7428    0.6314    0.2228
+    0.8085    0.5659    0.1617
+    0.8725    0.4799    0.0916
+    0.8927    0.4463    0.0625
+    0.6752    0.6752    0.2971
+    0.8514    0.5108    0.1192
+    0.9270    0.3708    0.0556
+    0.9106    0.4098    0.0546
+    0.9574    0.2872    0.0287
+    0.9432    0.3301    0.0377
+    0.6983    0.6634    0.2688
+    0.8505    0.5103    0.1276
+    0.8310    0.5401    0.1330
+    0.8909    0.4454    0.0891
+    0.9439    0.3304         0
+    0.9889    0.1483         0
+    0.9578    0.2873         0
+    0.7409    0.6298    0.2334
+    0.7641    0.6113    0.2063
+    0.8530    0.5118    0.1024
+    0.9577    0.2873    0.0192
+    0.9805    0.1961    0.0098
+    0.9285    0.3714         0
+    0.9098    0.4094    0.0682
+    0.9701    0.2425         0
+         0   -0.9806   -0.1961
+         0   -0.9950   -0.0995
+    0.9950    0.0995         0
+   -1.0000         0         0
+         0   -1.0000         0]
+
+     b_inv = [0.0862
+    0.2701
+    0.2012
+    0.3441
+    0.1393
+    0.0578
+    0.0769
+    0.0589
+    0.0686
+    0.1590
+    0.0645
+    0.0514
+    0.0520
+    0.0743
+    0.1132
+    0.0950
+    0.1182
+    0.1402
+    0.1035
+    0.0750
+    0.0714
+    0.1938
+    0.0834
+    0.0603
+    0.0640
+    0.0536
+    0.0556
+    0.1721
+    0.0872
+    0.0914
+    0.0713
+    0.0720
+    0.0502
+    0.0623
+    0.1465
+    0.1287
+    0.0836
+    0.0536
+    0.0505
+    0.0854
+    0.0639
+    0.0558
+    0.0441
+    0.0149
+    0.0498
+    0.0500
+         0]
+	A_gurobi = zeros(n_ineq, N * n_uxu)
+	A_gurobi[1:n_ineq, (N-1)*n_uxu + nu + 1: N * n_uxu] = A_inv
+	b_gurobi = b_inv
+	println(size(A_gurobi))
+	println(size(b_gurobi))
+	# The steady state we want is:
+	z0 = zeros(N*n_uxu,1)
+	z0[(N-1)*n_uxu + nu + 1: N*n_uxu,1] = [50 
+											0 
+											0]
+	println(size(squeeze(A_gurobi * z0,2)))
+	println(size(b_gurobi + squeeze(A_gurobi * z0,2)))
+	println(size(A_gurobi * z0))							
+	println(size(z0))
+
+	#**************************************
+
 	# ================ Solve Problem =================== 
     tic()
     GurobiEnv = Gurobi.Env()
@@ -255,7 +371,25 @@ module GPSKinMPCPathFollowerFrenetLinLongGurobi
 		# update RHS of linear equality constraint
 		beq_gurobi_updated = repmat(g_tilde,N,1);
 		beq_gurobi_updated[1:nx_tilde] = beq_gurobi_updated[1:nx_tilde] + A_tilde*x_tilde_0 	# PARAMETER: depends on x0
+		
+		# editted by Byron and Jiakai
+		# update the box constraints
+		
+		#smallNumber = 50
 
+		#x_lb = [	-smallNumber	  # make sure car doesnt travel more than largeNumber [m]
+		#		v_min		]
+		#x_ub = [	smallNumber		
+		#		v_max		]
+
+		#x_tilde_lb = [x_lb ; u_lb]
+		#x_tilde_ub = [x_ub ; u_ub]
+		
+		#lb_gurobi = repmat([u_tilde_lb ; x_tilde_lb], N, 1)
+		#ub_gurobi = repmat([u_tilde_ub ; x_tilde_ub], N, 1)
+
+		# editted by Byron and Jiakai
+		
 		# update reference trajectories
 		x_ref = zeros(N*nx,1)
 		for i = 1 : N
@@ -290,6 +424,8 @@ module GPSKinMPCPathFollowerFrenetLinLongGurobi
     			f = f_gurobi_updated,	# need to make it "flat"
     			Aeq = Aeq_gurobi,
     			beq = squeeze(beq_gurobi_updated,2), # need to make it "flat"
+    			#A = A_gurobi,
+    			#b = b_gurobi + squeeze(A_gurobi * z0,2),
     			lb = squeeze(lb_gurobi,2), # need to make it "flat"
     			ub = squeeze(ub_gurobi,2)	) # need to make it "flat"
 	    optimize(GurobiModel)		 		# solve optimization problem
