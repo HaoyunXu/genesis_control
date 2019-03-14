@@ -12,7 +12,7 @@ import pdb	# import debugger
 import math
 import argparse
 
-# aux function that 
+# aux function that
 def cubic_func(t,a3,a2,a1,a0):              # f(t)
 	return a0 + a1*t + a2*t**2 + a3*t**3
 
@@ -26,8 +26,8 @@ def reconstruct_frenet(x0, y0, p0, s_0, s_max, K_coeff):
 
 	for i in range(len(s_interp) - 1):  # integrate ds to get the trajectory
 		# Update position
-		ds = s_interp[i+1] - s_interp[i]                
-		xn = xr[-1] + ds * math.cos(pr[-1])    
+		ds = s_interp[i+1] - s_interp[i]
+		xn = xr[-1] + ds * math.cos(pr[-1])
 		yn = yr[-1] + ds * math.sin(pr[-1])
 
         # Update heading
@@ -47,7 +47,7 @@ def reconstruct_frenet(x0, y0, p0, s_0, s_max, K_coeff):
 
 
 
-''' Code to compute curvature 
+''' Code to compute curvature
 loads data from "infile"
 saves data with curvature profile in "outfile"
 
@@ -57,13 +57,13 @@ paramaters that can be used to configure stuff
 '''
 
 def comp_curvature(infile, outfile):
-	# PARAMETERS USED TO COMPUTE 
+	# PARAMETERS USED TO COMPUTE
 	# HOW FAR AHEAD LOOK???????????
 	dt_mpc = 0.2
 	N_mpc = 8		# should be longer in practice
 
 	# define gps-resolution
-	dt_gps = 0.01 	# sampling time [s] of data; 
+	dt_gps = 0.01 	# sampling time [s] of data;
 					# 0.01 for new GPS on Black Genesis
 					# 0.07 for Azera data
 
@@ -103,7 +103,8 @@ def comp_curvature(infile, outfile):
 	# compute "s" along path
 	# data points are about 1m apart from each other
 	for i in range(len(X_all)): # loop over reference path
-		# cdists = "s" ; unit of "s" is m
+		# cdists = "s" ; unit of "s" is m		plt.plot(x_recon, y_recon,'--',lw=2)
+
 		if len(cdists) == 0: 		# i.e. the first point on the trajectory
 			cdists.append(0.0)	# s = 0
 		else:					# later points on the trajectory
@@ -120,7 +121,7 @@ def comp_curvature(infile, outfile):
 	ds_tmp = []	# can be deleted, just for debugging purposes
 	# compute Curv (along path)
 	for i in range(len(cdists)-1):
-		# by def, Psi'(s) = c(s) * s'	
+		# by def, Psi'(s) = c(s) * s'
 		# approximate this using finite difference
 		delta_s = cdists[i+1]-cdists[i]
 		delta_Psi = Psi_all[i+1]-Psi_all[i]
@@ -137,23 +138,29 @@ def comp_curvature(infile, outfile):
 			curv = 0
 		Curv_all.append(curv)
 		ds_tmp.append(delta_s)
-	# append last element so that all vertices of same 
+	# append last element so that all vertices of same
 	Curv_all.append(0)
-	ds_tmp.append(0)	
+	ds_tmp.append(0)
 
 
 	# heuristic: remove the jumps in the last few c(s)
 	# useful for RFS when car comes to stop
 	Curv_all[-1-300:-1] = np.zeros(300)
 
-	# plt.figure()
+	plt.figure()
+	plt.title('Raw curv data')
+	plt.plot(cdists,Curv_all,'o')
+	plt.xlabel('s')
+	plt.ylabel('c(s)')
+	plt.show()
+
+	# plt.figure()	# plt.figure()
 	# plt.title('Raw curv data')
 	# plt.plot(cdists,Curv_all,'o')
 	# plt.xlabel('s')
 	# plt.ylabel('c(s)')
 	# plt.show()
 
-	# plt.figure()
 	# plt.plot(cdists,ds_tmp,'o')
 	# plt.show()
 
@@ -191,11 +198,17 @@ def comp_curvature(infile, outfile):
 
 	# tm_length = []
 	t_interpOffset = 1*dt_mpc	# offset used to add chunks to beginning and end for interpolation
-	for ii in range( int(len(cdists) - round(2*(N_mpc*dt_mpc)/dt_gps)) ) : # loop over index of 
+	for ii in range( int(len(cdists) - round(2*(N_mpc*dt_mpc)/dt_gps)) ) : # loop over index of
 		if ii%1000 == 0:
 			print(ii)
 		ii_interp = max(0,ii - int(t_interpOffset/dt_gps))	# look ahead 0.1 sec (/0.01 because data comes in every 0.01s)
-		# data is sampled on average every dt_gps (e.g. 10ms = 0.01 for Black Genesis)
+		# data is sampled on average every dt	# plt.figure()
+	# plt.title('Raw curv data')
+	# plt.plot(cdists,Curv_all,'o')
+	# plt.xlabel('s')
+	# plt.ylabel('c(s)')
+	# plt.show()
+_gps (e.g. 10ms = 0.01 for Black Genesis)
 		tm_interp = np.arange(T_all[ii_interp], T_all[ii_interp] + N_mpc*dt_mpc+t_interpOffset, dt_gps)	# interpolate time, WHAT IS A GOOD DISCRETIZATION? 10ms for now
 		tm_fit = np.arange(T_all[ii], T_all[ii] + N_mpc*dt_mpc, dt_gps)	# Helper for checking fit (over MPC horizon)
 
@@ -203,9 +216,10 @@ def comp_curvature(infile, outfile):
 		s_interp = np.interp(tm_interp, T_all, cdists)		# obtain corresponding 's'; s_des   = f_interp(t_des, t_actual, s_actual)
 		s_fit_tmp = np.interp(tm_fit, T_all, cdists)		# Helper for checking fit (only over MPC horizon)
 
-		curv_interp = np.interp(tm_interp, T_all, Curv_all)
+		curv_interp = np.interp(tm_in		plt.plot(x_recon, y_recon,'--',lw=2)
+terp, T_all, Curv_all)
 		curv_coeff_tmp = np.polyfit(s_interp, curv_interp, poly_order)	# get coefficient, starts from highest order
-		curv_coeff[ii,:] = curv_coeff_tmp	# 
+		curv_coeff[ii,:] = curv_coeff_tmp	#
 		# plot empirically the curvature
 		# curv_fit_tmp = []
 		for i in range(len(s_fit_tmp)):
@@ -246,7 +260,7 @@ def comp_curvature(infile, outfile):
 	# 'c' = continue ; 'q' = quit
 	# pdb.set_trace()
 
-	# in this part of the code, we want to reconstruct 
+	# in this part of the code, we want to reconstruct
 
 	plt.figure()
 	plt.plot(X_all,Y_all)
@@ -292,5 +306,3 @@ if __name__ == "__main__":
 	# infile = 'cpg_clean.mat'
 	# outfile = 'cpg_clean_curv.mat'
 	comp_curvature(args.infile, args.outfile)
-
-

@@ -32,15 +32,15 @@ def parseRadar(msg):
 	width = msg.width # m
 	rolling_count = msg.rolling_count
 
-	radar[index]['status'] = status  # New_Coasted_Target(7), Invalid_Coasted_Target(6), Merged_Target(5), Coasted_Target(4),
+	radar['status'] = status  # New_Coasted_Target(7), Invalid_Coasted_Target(6), Merged_Target(5), Coasted_Target(4),
                                          # Updated_Target(3), New_Updated_Target(2), New_Target(1), No_Target(0)
-	radar[index]['mode'] = mode
-	radar[index]['dist'] = dist
-	radar[index]['vel'] = vel   # m/s
-	radar[index]['acc'] = acc
-	radar[index]['angle'] = angle
-	radar[index]['width'] = width
-	radar[index]['rolling_count'] = rolling_count
+	radar['mode'] = mode
+	radar['dist'] = dist
+	radar['vel'] = vel   # m/s
+	radar['acc'] = acc
+	radar['angle'] = angle
+	radar['width'] = width
+	radar['rolling_count'] = rolling_count
 
 def parseObject(msg):
 	global objects
@@ -55,14 +55,14 @@ def parseObject(msg):
 	object_age = msg.object_age
 	object_lane = msg.object_lane
 
-	objects[index]['obj_id'] = obj_id
-	objects[index]['valid'] = valid
-	objects[index]['x'] = x
-	objects[index]['y'] = y
-	objects[index]['range_rate'] = range_rate       # m/s
-	objects[index]['motion_status'] = motion_status # stationary (4), stopped(3), oncoming (2), preceding(1), undecided(0)
-	objects[index]['object_age'] = object_age
-	objects[index]['object_lane'] = object_lane
+	objects['obj_id'] = obj_id
+	objects['valid'] = valid
+	objects['x'] = x
+	objects['y'] = y
+	objects['range_rate'] = range_rate       # m/s
+	objects['motion_status'] = motion_status # stationary (4), stopped(3), oncoming (2), preceding(1), undecided(0)
+	objects['object_age'] = object_age
+	objects['object_lane'] = object_lane
 
 
 def radar_draw_loop():
@@ -91,7 +91,7 @@ def radar_draw_loop():
 		ax2.clear()
 
 		for i in range(64):
-			if 'status' in radar[i].keys() and radar[i]['status'] > 0:
+			if radar['status'][i] > 0:
 
 				width = radar[i]['width']       # Not very accurate. Car: usually 1 meter. Pedestrians: 0 meter
 				velocity = radar[i]['vel']      # m/s
@@ -122,7 +122,7 @@ def radar_draw_loop():
 				# ------------------------
 
 		for i in range(8):
-			if 'obj_id' in objects[i].keys() and objects[i]['obj_id'] > 0:
+			if objects[i]['obj_id'] > 0:
 
 				x = objects[i]['x']
 				y = objects[i]['y']

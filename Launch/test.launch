@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<launch>
+	<!-- This launch file is intended to simulate a path following experiment with GPS.  Vehicle simulation, GPS plotting, and vehicle control are enabled. -->
+
+	<!-- Pick between CPG + RFS coordinate systems here. -->
+	<!-- <rosparam command="load" file="$(find genesis_path_follower)/launch/rfs.yaml" ns="vehicle" /> -->
+	<rosparam command="load" file="$(find genesis_control)/paths/rfs_decoupled.yaml" ns="vehicle"/>
+
+  <param name="vehicle/scripts_dir" type="str" value="$(find genesis_control)/PathPlanningAndMPC_Decoupled/" />
+
+  <!-- The trajectory can be generated using recorded time or a target velocity. -->
+  <!-- Set track_using_time to True to allow for time-varying velocity. -->
+  <!-- Set track_using_time to False to use target_vel (m/s) instead. -->
+  <param name="vehicle/track_using_time" type="bool" value="False" />
+	<param name="vehicle/go_cmd" type="bool" value="True" />
+  <!--<param name="vehicle/target_vel" type="double" value="1.0" /> -->
+
+  <!-- Waypoints CSV to specify path. -->
+  <!-- Set is_heading_info to true if Heading (N = 0) is used instead of Yaw (E = 0). -->
+  <param name="vehicle/mat_waypoints" type="str" value="$(find genesis_control)/paths/RFS_Decoupled_Shortened_test_4.mat" />
+  <!-- <param name="vehicle/mat_waypoints" type="str" value="$(find genesis_path_follower)/paths/path1_6_20_curv.mat" /> -->
+  <param name="vehicle/is_heading_info" type="bool" value="True"/>
+  <param name="vehicle/time_check_on" type="bool" value="False"/>
+
+  <!--...................................................................-->
+
+  <!-- MPC, Simulation, and Plotting Nodes -->
+  <node ns="vehicle" pkg="genesis_control" type="test.jl" name="mpc_node" output="screen"/>
+  <node ns="vehicle" pkg="genesis_control" type="vehicle_simulator.py" name="sim_node" output="log"/>
+  <node ns="vehicle" pkg="genesis_control" type="gps_vehicle_plotter.py" name="plot_node" output="log"/>
+
+  <!-- Recording Node -->
+  <arg name="exclude_topics" default="/image_raw"/>
+
+  <node pkg="rosbag" type="record" name="rosbag_path_recorder" respawn="true" output="screen"
+        args="-a -o $(find genesis_control)/bags/sim_path_follow -x $(arg exclude_topics)" />
+
+</launch>
