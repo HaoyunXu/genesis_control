@@ -33,7 +33,7 @@
   <!-- Recording Node -->
   <arg name="exclude_topics" default="/image_raw"/>
 
-  <node pkg="rosbag" type="record" name="rosbag_path_recorder" respawn="true" output="screen"
-        args="-a -o $(find genesis_control)/bags/sim_path_follow -x $(arg exclude_topics)" />
+  <!-- <node pkg="rosbag" type="record" name="rosbag_path_recorder" respawn="true" output="screen"
+        args="-a -o $(find genesis_control)/bags/sim_path_follow -x $(arg exclude_topics)" /> -->
 
 </launch>

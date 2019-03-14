@@ -12,6 +12,7 @@ using RobotOS
 @rosimport std_msgs.msg: UInt8
 @rosimport std_msgs.msg: Float32
 @rosimport std_msgs.msg: Bool
+@rosimport std_msgs.msg: Float32MultiArray
 rostypegen()
 using genesis_path_follower.msg
 using std_msgs.msg
@@ -100,9 +101,15 @@ s_curr = 0.0		# frenet
 ey_curr = 0.0		# frenet
 epsi_curr = 0.0		# frenet
 K_coeff = zeros(4)	# assuming curvature is described by polynomial of order 3
-v_f = 3.0
+v_f = 5.0
 stopped = false
 command_stop = false
+
+just_started = 100   #if the car just started, can't skip lat MPC
+
+function v_acc_callback(msg::Float32MultiArray)
+	grt[:_update_acc](msg.data)
+end
 
 function vel_ref_callback(msg::Float32Msg)
 	global v_f
@@ -111,14 +118,14 @@ end
 
 #Modified by J&B
 function go_cmd_callback(msg::BoolMsg)
-	global stopped, v_f, command_stop #, test
+	global stopped, v_f, command_stop, just_started
 	println("receive command")
 	println(msg.data)
 	if stopped && msg.data
 		stopped = false
 		command_stop = false
 		v_f = 5.0
-		#test = 1000
+		just_started = 100
 	end
 end
 #Modified by J&B
@@ -246,15 +253,12 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 	    global ref_lock				# Ref lock used to ensure that get/set of state doesn't happen simultaneously.
 	    ref_lock = true
 
-		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped
+		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped, just_started
 		global s_ref, K_coeff, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref
 		global a_opt, df_opt 	# contains current optimal inut and steering angle
 
-		v_desired = v_f;
 		if ! track_with_time
-			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr, des_speed)
-			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_desired,v_curr)  ####editted by Jiakai
-			# println("get_waypoints_frenet with velocity tracking not yet implemented - using time-tracking")
+			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)  ####editted by Jiakai
 			println("command stop:")
 			println(command_stop)
 			if (s_curr < 102 && s_curr > 98) || (s_curr < 52 && s_curr > 48)
@@ -291,52 +295,35 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			# disable garbage collection (makes optimization code run faster)
 			gc_enable(false) # enable later on
 
-			# println("================  iteration $(it_num) =====================")
-
 			# a_opt=u0 ; a_pred = (u_0, u_1, ... u_{N-1})
 
-			################
-			# v_ref = zeros(17)
-
-			# v_ref[1] = v_curr
-			# for i = 2 : 17
-			# 	v_ref[i] = v_ref[i-1] + (v_f - v_curr)/16
-			# 	println("vref: ")
-			# 	println(v_ref[i])
-			# end
-			################
 			a_opt_gurobi, a_pred_gurobi, s_pred_gurobi, v_pred_gurobi, solv_time_long_gurobi1, is_opt_long = kmpcLinLongGurobi.solve_gurobi(s_curr, v_curr, a_opt, s_ref, v_ref)
 			solv_time_long_gurobi1_all[it_num+1] = solv_time_long_gurobi1
-
-			df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
-			solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
-
-			rostm = get_rostime()
-			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
+			a_opt = a_opt_gurobi
 
 			log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Velocity: %.3f, Reference velocity: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1,v_curr,v_f)
 			loginfo(log_str_long_Gurobi)
 
-			log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
-		    loginfo(log_str_lat)
+			rostm = get_rostime()
+			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
 
-			a_opt = a_opt_gurobi
-			df_opt = df_opt_gurobi
-
-			# if a_opt < 0.1 && a_opt > 0
-			# 	a_opt = 0.1
-			# end
-			#
-			# if a_opt > -0.1 && a_opt < 0
-			# 	a_opt = -0.1
-			# end
-
-			# make df_opt be 0 if v_curr is less than 0.1
-			if v_curr < 0.1
+			# if the speed is too slow and is not just started, skip lat MPC and apply 0 on steering angle
+			if v_curr < 0.1 && just_started==0
 				df_opt = 0.0;
+				solv_time_lat_gurobi1 = 0.0
+				log_str_lat = @sprintf("Speed is too SLOW: %.3f, skip lat MPC and apply 0.0 steer", v_curr)
+		    	loginfo(log_str_lat)
+			else
+				df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
+				solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
+
+				log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
+		    	loginfo(log_str_lat)
+
+				df_opt = df_opt_gurobi
 			end
 
-		    # do not apply any inputs during warm start
+	    	# do not apply any inputs during warm start
 		    if it_num <= num_warmStarts
 		    	it_num = it_num + 1;
 		    	continue
@@ -436,6 +423,13 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			publish( steer_pub_obj, Float32Msg(0.0) )
 		end
 
+
+		#update just started
+		if just_started != 0
+			just_started = just_started-1
+		end
+
+
 	    rossleep(loop_rate)
 	end
 
@@ -454,6 +448,7 @@ function start_mpc_node()
     mpc_path_pub = Publisher("mpc_path", mpc_path, queue_size=2)
 	sub_state  = Subscriber("state_est", state_est, state_est_callback, queue_size=2)
 	car_front_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
+	v_acc_sub = Subscriber("v_acc",Float32MultiArray, v_acc_callback, queue_size=2)
 	go_cmd_sub = Subscriber("go_cmd", BoolMsg, go_cmd_callback, queue_size=2)
 
 	publish(acc_enable_pub, UInt8Msg(2))

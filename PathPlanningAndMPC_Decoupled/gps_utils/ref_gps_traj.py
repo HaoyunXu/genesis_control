@@ -48,6 +48,7 @@ class GPSRefTrajectory():
 
 		self.traj_horizon = traj_horizon	# horizon (# time steps ahead) for trajectory reference
 		self.traj_dt = traj_dt				# time discretization (s) for each time step in horizon
+		self.acc = None						# adaptive cruise control velocities, input from acc function
 
 		tms  = []		# ROS Timestamps (s)
 		lats = []		# Latitude (decimal degrees)
@@ -123,7 +124,11 @@ class GPSRefTrajectory():
 			v_track = np.zeros(17)
 			v_track[0] = v_current
 			for i in range(1,17):
-				v_track[i] = v_track[i-1] + (v_target - v_current)/16
+				v_track[i] = v_track[i-1] + (v_target - v_current)/16.0
+
+			#Use the smaller velocity between adaptive cruise control and refence tracking
+			if self.acc is not None:
+				v_track = np.minimum(v_track,self.acc)
 
 			# print("v_track:",v_track)
 			#v_track = v_target*np.ones(17)
@@ -206,11 +211,7 @@ class GPSRefTrajectory():
 		########################### editted by Jiakai
 	def __waypoints_using_vtarget_frenet(self, closest_traj_ind, v_target, yaw_init,X_init, Y_init):
 		start_dist = self.trajectory[closest_traj_ind,6] # s0, cumulative dist corresponding to closest point
-		# print("start_dist:",start_dist)
-		# print("v_target:",v_target)
 
-		#dists_to_fit = [x*self.traj_dt*v_target[16] + start_dist for x in range(0,self.traj_horizon+1)] # edit bounds
-		#dists_to_fit = [self.traj_dt*v_target[x] + start_dist for x in range(0,self.traj_horizon+1)]
 		dists_to_fit = np.zeros(17)
 		dists_to_fit[0] = start_dist
 		for x in range(1,self.traj_horizon+1):
@@ -223,7 +224,6 @@ class GPSRefTrajectory():
 		self.psi_interp = self.__fix_heading_wraparound(psi_ref, yaw_init)
 
 
-		# self.s_interp =  self.trajectory[:,6]	   # compute the look-ahead s
 		print(dists_to_fit)
 		self.s_interp =  dists_to_fit
 		self.curv_interp = self.trajectory[closest_traj_ind,8:]	# extract local c(s) polynomial
@@ -270,3 +270,7 @@ class GPSRefTrajectory():
 			psi_ref[i] = psi_cands_arr[best_cand]
 
 		return psi_ref
+
+
+	def _update_acc(self, newAcc):
+		self.acc = newAcc
