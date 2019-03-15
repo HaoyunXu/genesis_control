@@ -101,7 +101,7 @@ s_curr = 0.0		# frenet
 ey_curr = 0.0		# frenet
 epsi_curr = 0.0		# frenet
 K_coeff = zeros(4)	# assuming curvature is described by polynomial of order 3
-v_f = 5.0
+v_f = 3.0
 stopped = false
 command_stop = false
 callback_log = true
@@ -130,7 +130,7 @@ function go_cmd_callback(msg::BoolMsg)
 	if stopped && msg.data
 		stopped = false
 		command_stop = false
-		v_f = 1.0
+		v_f = 3.0
 		stop_index=stop_index+1
 		s_stop = s_stop_array[stop_index]
 		just_started = 100
@@ -261,9 +261,9 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 	    end
 
 		#Gradually increase v_ref when given the go cmd, don't do this when new v_ref is given
-		if (v_f <=4.98) && callback_log
-			v_f=v_f+0.02
-		end
+		# if (v_f <=4.98) && callback_log
+		# 	v_f=v_f+0.02
+		# end
 
 	    global ref_lock				# Ref lock used to ensure that get/set of state doesn't happen simultaneously.
 	    ref_lock = true
@@ -437,7 +437,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 		else
 			publish( acc_pub_obj,   Float32Msg(-1.0) )
-			publish( steer_pub_obj, Float32Msg(0.0) )
+			#publish( steer_pub_obj, Float32Msg(0.0) )
 		end
 
 
@@ -467,8 +467,8 @@ function start_mpc_node()
 	v_acc_sub = Subscriber("v_acc",Float32MultiArray, v_acc_callback, queue_size=2)
 	go_cmd_sub = Subscriber("go_cmd", BoolMsg, go_cmd_callback, queue_size=2)
 
-	publish(acc_enable_pub, UInt8Msg(2))
-	publish(steer_enable_pub, UInt8Msg(1))
+	#publish(acc_enable_pub, UInt8Msg(2))
+	#publish(steer_enable_pub, UInt8Msg(1))
 
     pub_loop(acc_pub, steer_pub, mpc_path_pub)
 end

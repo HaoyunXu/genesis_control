@@ -82,7 +82,6 @@ module GPSKinMPCPathFollowerFrenetLinLatGurobi
 	# define cost functions
     C_ey = 5.0				# lateral deviation
     C_epsi = 1.0			# heading deviation
-    C_epsi = 0.0
 	C_df	 = 0.0	# 150			# tire angle input
 	C_ddf	 = 1000.0	# 3e4			# derivative of tire angle input
 
