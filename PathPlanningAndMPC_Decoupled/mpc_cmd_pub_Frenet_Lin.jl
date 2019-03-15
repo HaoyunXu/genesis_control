@@ -104,28 +104,40 @@ K_coeff = zeros(4)	# assuming curvature is described by polynomial of order 3
 v_f = 5.0
 stopped = false
 command_stop = false
+start_count = 0.0
+callback_log = true
 
 just_started = 100   #if the car just started, can't skip lat MPC
+dist_buffer = 5
+s_stop_array = [139.660552, 301.765776, 421.323314,575]
+stop_index = 1
+s_stop = s_stop_array[stop_index]
 
 function v_acc_callback(msg::Float32MultiArray)
 	grt[:_update_acc](msg.data)
 end
 
 function vel_ref_callback(msg::Float32Msg)
-	global v_f
+	global v_f, callback_log
 	v_f = msg.data
+	callback_log = false
 end
 
 #Modified by J&B
 function go_cmd_callback(msg::BoolMsg)
-	global stopped, v_f, command_stop, just_started
+	global stopped, v_f, command_stop, just_started, s_stop, stop_index, s_stop_array, start_count, callback_log
 	println("receive command")
 	println(msg.data)
 	if stopped && msg.data
 		stopped = false
 		command_stop = false
-		v_f = 5.0
+		v_f = 1.0
+		stop_index=stop_index+1
+		s_stop = s_stop_array[stop_index]
 		just_started = 100
+		start_count = 0.0
+		callback_log = true
+		#car_front_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
 	end
 end
 #Modified by J&B
@@ -200,10 +212,11 @@ function compRefXYfromCurv(s0, s_max, k_coeff, hor)
 
 	ds = 0.25
 	s_interp = collect(0:ds:s_max)
+	print("s_interp")
+	print(s_interp)
 	x_interp = zeros(length(s_interp))
 	y_interp = zeros(length(s_interp))
 	psi_interp = zeros(length(s_interp))
-
 	x_interp[1] = x_ref[1]
 	y_interp[1] = y_ref[1]
 	psi_interp[1] = psi_ref[1]
@@ -230,15 +243,14 @@ end
 function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 	# println("start pub_loop")
-	global v_f
+	global v_f, start_count
 	control_rate = 50 	# max 50 Hz
     loop_rate = Rate(control_rate)
 
 	solv_time_long_gurobi1_all = zeros(control_rate/10*6000)		# over Gurobi.jl interface; mean: 2ms, max 4ms
 	solv_time_lat_gurobi1_all = zeros(control_rate/10*6000)		# over Gurobi.jl interface; mean: 2ms, max 4ms
 	solv_time_gurobi_tot_all = zeros(control_rate/10*6000)
-
-    num_warmStarts = 2	# number of warmstarts - no control applied during these steps
+    num_warmStarts = 2	# number of warstopped = trumstarts - no control applied during these steps
     it_num = 0	# iteration_count
 
 	gc()	# clear garbage
@@ -250,24 +262,32 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 	        continue
 	    end
 
+		if (v_f <=4.98) && callback_log
+			v_f=v_f+0.02
+		end
+
 	    global ref_lock				# Ref lock used to ensure that get/set of state doesn't happen simultaneously.
 	    ref_lock = true
 
-		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped, just_started
+		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped, just_started, s_stop
 		global s_ref, K_coeff, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref
 		global a_opt, df_opt 	# contains current optimal inut and steering angle
-
+		println("Callback_logz")
+		println(callback_log)
 		if ! track_with_time
+			# velocity tracking based waypoints
 			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)  ####editted by Jiakai
 			println("command stop:")
 			println(command_stop)
-			if (s_curr < 102 && s_curr > 98) || (s_curr < 52 && s_curr > 48)
+			brake_dist = v_curr^2/2
+			println(brake_dist+s_curr+dist_buffer)
+			if (brake_dist+s_curr+dist_buffer) > s_stop
 				stopped = true
 			end
 			if stopped        #stop_cmd == true
 				command_stop = true
-				println(12345)
 			end
+
 
 		else  # current version, time-based
 			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr);
@@ -375,7 +395,6 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			publish(mpc_path_pub_obj, mpc_path_msg)
 
 	    	it_num = it_num + 1		# iteration_count
-
 			# println("--- max comput time Long IPOPT: $(maximum(solv_time_long_ipopt_all[5:end])*1000) ms ---")
 			# println("avg comput time Long IPOPT: $(mean(solv_time_long_ipopt_all[5:it_num-1])*1000) ms")
 			# println("solv times Long IPOPT more than 15ms: $(sum(solv_time_long_ipopt_all[5:end] .> 15e-3*ones(1000-4) ))")
@@ -428,7 +447,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		if just_started != 0
 			just_started = just_started-1
 		end
-
+		start_count = start_count+1
 
 	    rossleep(loop_rate)
 	end

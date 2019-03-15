@@ -6,6 +6,7 @@ import rosbag
 import time
 import rospy
 import scipy.io as sio
+#import v_acc_gen
 
 ################################################
 # HELPER FUNCTIONS
@@ -66,7 +67,7 @@ class GPSRefTrajectory():
 		yaws = np.ravel(data_dict['psi'])
 		cdists = np.ravel(data_dict['cdists'])
 		curv = data_dict['curv']	# this is already a good matrix; size 6626 x 4 (polyDeg+1), no need to ravel
-		vels = np.ravel(data_dict['v'])
+		vels = np.ravel(data_dict['v_long'])
 
 		for i in range(len(lats)):
 			lat = lats[i]; lon = lons[i]
@@ -127,7 +128,7 @@ class GPSRefTrajectory():
 				v_track[i] = v_track[i-1] + (v_target - v_current)/16.0
 
 			#Use the smaller velocity between adaptive cruise control and refence tracking
-			if self.acc is not None:
+			if self.acc!=[] and self.acc!=None:
 				v_track = np.minimum(v_track,self.acc)
 
 			# print("v_track:",v_track)
@@ -204,7 +205,6 @@ class GPSRefTrajectory():
 		frenet_x = lat_error_X * np.cos(self.psi_interp[0]) + lat_error_Y * np.sin(self.psi_interp[0])
 		frenet_y = -lat_error_X * np.sin(self.psi_interp[0]) + lat_error_Y * np.cos(self.psi_interp[0])
 		ey_curr = frenet_y
-
 		return self.s_interp, self.curv_interp, stop_cmd, s_curr, ey_curr, epsi_curr, self.x_interp, self.y_interp, self.psi_interp, self.v_interp
 
 		#############################################
@@ -224,7 +224,7 @@ class GPSRefTrajectory():
 		self.psi_interp = self.__fix_heading_wraparound(psi_ref, yaw_init)
 
 
-		print(dists_to_fit)
+		# print(dists_to_fit)
 		self.s_interp =  dists_to_fit
 		self.curv_interp = self.trajectory[closest_traj_ind,8:]	# extract local c(s) polynomial
 		# Send a stop command if the end of the trajectory is within the horizon of the waypoints.
@@ -273,4 +273,5 @@ class GPSRefTrajectory():
 
 
 	def _update_acc(self, newAcc):
+		#return v_ref = v_acc_gen.v_acc_callback(newAcc)
 		self.acc = newAcc
