@@ -104,12 +104,11 @@ K_coeff = zeros(4)	# assuming curvature is described by polynomial of order 3
 v_f = 5.0
 stopped = false
 command_stop = false
-start_count = 0.0
 callback_log = true
 
 just_started = 100   #if the car just started, can't skip lat MPC
 dist_buffer = 5
-s_stop_array = [139.660552, 301.765776, 421.323314,575]
+s_stop_array = [139.660552, 301.765776, 421.323314,575] #hardcoded stop distances
 stop_index = 1
 s_stop = s_stop_array[stop_index]
 
@@ -125,7 +124,7 @@ end
 
 #Modified by J&B
 function go_cmd_callback(msg::BoolMsg)
-	global stopped, v_f, command_stop, just_started, s_stop, stop_index, s_stop_array, start_count, callback_log
+	global stopped, v_f, command_stop, just_started, s_stop, stop_index, s_stop_array, callback_log
 	println("receive command")
 	println(msg.data)
 	if stopped && msg.data
@@ -135,7 +134,6 @@ function go_cmd_callback(msg::BoolMsg)
 		stop_index=stop_index+1
 		s_stop = s_stop_array[stop_index]
 		just_started = 100
-		start_count = 0.0
 		callback_log = true
 		#car_front_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
 	end
@@ -243,7 +241,7 @@ end
 function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 	# println("start pub_loop")
-	global v_f, start_count
+	global v_f
 	control_rate = 50 	# max 50 Hz
     loop_rate = Rate(control_rate)
 
@@ -262,6 +260,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 	        continue
 	    end
 
+		#Gradually increase v_ref when given the go cmd, don't do this when new v_ref is given
 		if (v_f <=4.98) && callback_log
 			v_f=v_f+0.02
 		end
@@ -272,8 +271,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped, just_started, s_stop
 		global s_ref, K_coeff, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref
 		global a_opt, df_opt 	# contains current optimal inut and steering angle
-		println("Callback_logz")
-		println(callback_log)
+
 		if ! track_with_time
 			# velocity tracking based waypoints
 			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)  ####editted by Jiakai
@@ -447,7 +445,6 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 		if just_started != 0
 			just_started = just_started-1
 		end
-		start_count = start_count+1
 
 	    rossleep(loop_rate)
 	end
@@ -477,10 +474,5 @@ function start_mpc_node()
 end
 
 if ! isinteractive()
-	# try
     	start_mpc_node()
-    # catch x
-    	# println("222")
-    	# print(x)
-    # end
 end
