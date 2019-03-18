@@ -6,6 +6,11 @@ import rospy
 import numpy as np
 import matplotlib.pyplot as plt
 from std_msgs.msg import Float32MultiArray
+from genesis_msgs.msg import target
+from genesis_msgs.msg import Multi_targets
+
+pub = rospy.Publisher('Multi_targets', Multi_targets, queue_size=10)
+# PUT ANOTHER PUB FOR Cruise control
 
 radar_list_targets           = None
 camera_list_targets          = None
@@ -17,7 +22,7 @@ previous_radar_list_targets  = None
 def callback_radar(data):
 	global radar_list_targets
 	radar_list_targets = data.data
-	
+
 
 
 def callback_camera(data):
@@ -36,23 +41,23 @@ def main():
 
 	# ------------------------------------------------------------
 	# Initialize the figure
-	f, ax = plt.subplots(1)
-	plt.ion()
-	
+	# f, ax = plt.subplots(1)
+	# plt.ion()
+
 	# ------------------------------------------------------------
 
 
-	
+
 
 	while not rospy.is_shutdown():
 
 		# Refresh plot
-		ax.clear()
+		# ax.clear()
 
 		# ------------------------------------------------------------
-		# If no targets detected, the global variables are not updated so 
+		# If no targets detected, the global variables are not updated so
                 # they stay equal to they previous value. So if that happens, we set
-                # them to None. Maybe better to do an empty tuple instead. 
+                # them to None. Maybe better to do an empty tuple instead.
 
 		if camera_list_targets == previous_camera_list_targets:
 			camera_list_targets = None
@@ -61,14 +66,14 @@ def main():
 			radar_list_targets = None
 
 		# ------------------------------------------------------------
-		# Reshape the lists to make it easier to work. 
+		# Reshape the lists to make it easier to work.
 		# We only reshape if it's not a None, of course
 		# We change the name (ex: radar_list_targets_matrix to still be able to compare with previous value at the end of the main
 
 		radar_list_targets_matrix  = []
 		camera_list_targets_matrix = []
 
-		if radar_list_targets != None:  
+		if radar_list_targets != None:
 			radar_list_targets_matrix  = np.array(radar_list_targets).reshape(len(radar_list_targets)/4,4)     # Number of rows and columns (x,y,speed,label)
 
 		if camera_list_targets != None:
@@ -79,33 +84,34 @@ def main():
 		# ------------------------------------------------------------
 		# Here we do the fusion. We go through all the points and:
 		# -> Calculate the distance between all the camera points with the radar points
-                #   -> If they are close, we do an average 
+                #   -> If they are close, we do an average
 		#   -> If not close, we keep them both
-		# We append everything in a new matrix 	
+		# We append everything in a new matrix
 
 		# LABEL: 1.0 = Car
 		#        2.0 = Unknown
 
-		all_targets = []	
+		all_targets = []
 		min_distance = 5 #Min distance between two points to be considered the same points
+		target_array = Multi_targets()
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
-			camera_point_in_memory = False		
+			camera_point_in_memory = False
 			print '  '
 			print 'i = ', i
 			for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
 				print 'j = ', j
 				x_cam     = camera_list_targets_matrix[i][0]
 				y_cam     = camera_list_targets_matrix[i][1]
-				v_cam     = camera_list_targets_matrix[i][2] #Speed		
+				v_cam     = camera_list_targets_matrix[i][2] #Speed
 				label_cam = camera_list_targets_matrix[i][3]
 				age_cam   = camera_list_targets_matrix[i][4]
-			 
+
 				x_radar     = radar_list_targets_matrix[j][0]
 				y_radar     = radar_list_targets_matrix[j][1]
 				v_radar     = radar_list_targets_matrix[j][2]  #Speed
 				label_radar = radar_list_targets_matrix[j][3]
-				
-			
+
+
 				distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
 				#print 'distance = ', distance
 				if distance < min_distance:
@@ -113,9 +119,16 @@ def main():
 					x_average = (x_cam + x_radar)/2
 					y_average = (y_cam + y_radar)/2
 					v_average = (v_cam + v_radar)/2
-					
+
 					# We average and add the label (1.0 = car)
 					point_average = [x_average, y_average, v_average, 1.0]
+					target.pos_x = x_average
+					target.pos_y = y_average
+					target.speed = v_average
+					target.category = 1
+					target.counter = i
+					print(type(target_array.data))
+					target_array.data.append(target)
 					print 'point_average = ', point_average
 					#all_targets.append(point_average)
 					a = np.append(camera_list_targets_matrix[i],1.0)
@@ -132,9 +145,9 @@ def main():
 						camera_point_in_memory = True
 						all_targets.append(list(a))
 
-					
+
 					all_targets.append(list(b))
-					
+		pub.publish(target_array)
 		# ------------------------------------------------------------
 		# Here we plot the targets
 		# Change the indexes !
@@ -148,22 +161,22 @@ def main():
 
 		# ------------------------------------------------------------
 		# Plot test
-		for i in range(len(all_targets)):
-			if all_targets[i][3] == 1.0:
-				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = '.')
-			else:
-				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = '.')
-		
+		# for i in range(len(all_targets)):
+		# 	if all_targets[i][3] == 1.0:
+		# 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = '.')
+		# 	else:
+		# 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = '.')
 
+	    # End plot test
 		# ------------------------------------------------------------
 
-		plt.xlim([-20,20])
-		plt.ylim([-1,40])
-		plt.grid()
-		f.canvas.draw()  # Do I need this ? 
+		# plt.xlim([-20,20])
+		# plt.ylim([-1,40])
+		# plt.grid()
+		# f.canvas.draw()  # Do I need this ?
 		plt.pause(0.001) # Do I need this ?
-					
-		
+
+
 		# ------------------------------------------------------------
 		# Update the new previous global variables
 		previous_camera_list_targets = camera_list_targets
@@ -171,9 +184,9 @@ def main():
 		# ------------------------------------------------------------
 
 		rospy.sleep(0.5)
-	
+
 	rospy.spin()
 
 if __name__ == '__main__':
-    
+
 	main()
