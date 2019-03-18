@@ -117,7 +117,9 @@ def main():
 					# We average and add the label (1.0 = car)
 					point_average = [x_average, y_average, v_average, 1.0]
 					print 'point_average = ', point_average
-					all_targets.append(point_average)
+					#all_targets.append(point_average)
+					a = np.append(camera_list_targets_matrix[i],1.0)
+					all_targets.append(list(a))
 					camera_point_in_memory = True
 				else:
 
@@ -142,7 +144,18 @@ def main():
 		column_of_x = [i[0] for i in all_targets]
 		column_of_y = [i[1] for i in all_targets]
 
-		ax.scatter(column_of_x, column_of_y,color='green', marker='.')
+		#ax.scatter(column_of_x, column_of_y,color='green', marker='.')
+
+		# ------------------------------------------------------------
+		# Plot test
+		for i in range(len(all_targets)):
+			if all_targets[i][3] == 1.0:
+				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = '.')
+			else:
+				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = '.')
+		
+
+		# ------------------------------------------------------------
 
 		plt.xlim([-20,20])
 		plt.ylim([-1,40])
