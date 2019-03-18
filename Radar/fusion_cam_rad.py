@@ -1,27 +1,27 @@
 
 #!/usr/bin/env python
-import rospy
+
 import cv2
+import rospy
 import numpy as np
 import matplotlib.pyplot as plt
 from std_msgs.msg import Float32MultiArray
 
-radar_list_targets = None
-camera_list_targets = None
+radar_list_targets           = None
+camera_list_targets          = None
 
 previous_camera_list_targets = None
-previous_radar_list_targets = None
+previous_radar_list_targets  = None
+
 
 def callback_radar(data):
 	global radar_list_targets
-
 	radar_list_targets = data.data
 	
 
 
 def callback_camera(data):
 	global camera_list_targets
-
 	camera_list_targets = data.data
 
 
@@ -64,6 +64,7 @@ def main():
 		# Reshape the lists to make it easier to work. 
 		# We only reshape if it's not a None, of course
 		# We change the name (ex: radar_list_targets_matrix to still be able to compare with previous value at the end of the main
+
 		radar_list_targets_matrix  = []
 		camera_list_targets_matrix = []
 
@@ -126,7 +127,7 @@ def main():
 		# Change the indexes !
 		column_of_x = [i[0] for i in all_targets]
 		column_of_y = [i[1] for i in all_targets]
-		#ax.scatter(column_of_x, column_of_y)
+
 		ax.scatter(column_of_x, column_of_y,color='green', marker='o')
 
 		plt.xlim([-20,20])
