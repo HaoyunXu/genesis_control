@@ -7,37 +7,69 @@ import rospy
 from sensor_msgs.msg import Image
 import matplotlib.pyplot as plt
 import math
-from jsk_recognition_msgs.msg import BoundingBoxArray
-from autoware_detection_msgs.msg import DetectedObjectArray
+#from jsk_recognition_msgs.msg import BoundingBoxArray
+from autoware_msgs.msg import image_obj
 
-pubbox = rospy.Publisher('yolo_bb', BoundingBoxArray, queue_size=10)
+#yolobox = rospy.Publisher('yolo_bb', BoundingBoxArray, queue_size=10)
 
-def parseYoloBoxes(data):
-	global pubbox
-	data_copy = data
-	counter = 0
-	for i in range(len(data.boxes)):
-		x = data.boxes[i].pose.position.x
-		y = data.boxes[i].pose.position.y
-		if (y<20 and y>-10) and (x<10 and x>-10):
-			# Pedstrian
-			height = data.boxes[i].dimensions.z
-			length = data.boxes[i].dimensions.x
-			width = data.boxes[i].dimensions.y
-			if (height < 1.8 and height > 0.5) and (length < 1.5 and length > 0) and (width < 1.5 and width > 0):
-				data_copy.boxes[counter] = data.boxes[i]
-				counter = counter + 1
+img = None; img_lock = False; img_tm = None
+pub_img_proc = rospy.Publisher("/image_yolo", Image, queue_size=2)
 
-	for j in range(len(data.boxes)-counter):
-		data_copy.boxes.pop()
+def img_callback(msg):
+	# Maybe downsample?
+	global img, img_tm, img_lock
+	if img_lock == False:
+		try:
+			img = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+			img_tm = msg.header.stamp.secs + 1e-9 * msg.header.stamp.nsecs
+		except CvBridgeError as e:
+			print e
 
-	pubbox.publish(data_copy)
 
+def parseYoloBoxes(msg):
+	global img, img_lock
+	#global yolobox
+	#print 2
+	#print data.obj.x
+	#pubbox.publish(yolo_box)
+	if len(msg.obj) > 0:
+		print msg.header.stamp.secs + 1e-9 * msg.header.stamp.nsecs
+
+		img_local = None
+		# copy the image, get the lock
+		if (img is not None) and (img_lock == False):
+			img_lock = True
+			img_local = np.copy(img)
+			img_lock = False
+		else:
+			print 'Waiting for image.'
+
+
+		# overlay the boxes on the image and publish
+		if img_local is not None:
+			color = (0,0,0)
+		 	if msg.type == 'person':
+				color = (255,0,0)
+			else:
+				color = (0,0,255)
+
+			for obj in msg.obj:
+				x = obj.x
+				y = obj.y
+				w = obj.width
+				h = obj.height
+				s = obj.score
+				print 'x: %d, y: %d, h: %d, w: %d, score: %f\n' % (x,y,h,w,s)
+				cv2.rectangle(img_local, (x,y), (x+w, y+h), color = color)
+			img_msg = CvBridge().cv2_to_imgmsg(img_local, encoding="bgr8")
+			pub_img_proc.publish(img_msg)
 
 def radar_draw_loop():
 	rospy.init_node('lidar_box_filter', anonymous = True)
-	rospy.Subscriber('/bounding_boxes', BoundingBoxArray, parseBoxes, queue_size = 2)
-
+	sub_person = rospy.Subscriber('/obj_person/image_obj', image_obj, parseYoloBoxes, queue_size = 2)
+	sub_car = rospy.Subscriber('/obj_car/image_obj', image_obj, parseYoloBoxes, queue_size = 2)
+	sub_img = rospy.Subscriber("/image_raw", Image, img_callback, queue_size=2)
 	rospy.spin()
+
 if __name__=='__main__':
 	radar_draw_loop()
