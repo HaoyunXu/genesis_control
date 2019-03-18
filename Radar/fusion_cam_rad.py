@@ -89,8 +89,11 @@ def main():
 		all_targets = []	
 		min_distance = 5 #Min distance between two points to be considered the same points
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
+			camera_point_in_memory = False		
+			print '  '
+			print 'i = ', i
 			for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
-
+				print 'j = ', j
 				x_cam     = camera_list_targets_matrix[i][0]
 				y_cam     = camera_list_targets_matrix[i][1]
 				v_cam     = camera_list_targets_matrix[i][2] #Speed		
@@ -104,31 +107,42 @@ def main():
 				
 			
 				distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
+				#print 'distance = ', distance
 				if distance < min_distance:
+
 					x_average = (x_cam + x_radar)/2
 					y_average = (y_cam + y_radar)/2
 					v_average = (v_cam + v_radar)/2
 					
 					# We average and add the label (1.0 = car)
 					point_average = [x_average, y_average, v_average, 1.0]
+					print 'point_average = ', point_average
 					all_targets.append(point_average)
+					camera_point_in_memory = True
 				else:
 
 					# We add the label (1.0 = car, 2.0 = unknown)
-					a = np.append(camera_list_targets_matrix[i],1.0)
 					b = np.append(radar_list_targets_matrix[j],2.0)
+					print 'b = ',b
+					if camera_point_in_memory == False:
+						a = np.append(camera_list_targets_matrix[i],1.0)
+						print 'a = ', a
+						camera_point_in_memory = True
+						all_targets.append(list(a))
+
 					
-					
-					all_targets.append(list(a))
 					all_targets.append(list(b))
 					
 		# ------------------------------------------------------------
 		# Here we plot the targets
 		# Change the indexes !
+		print type(all_targets)
+		print all_targets
+		print ' '
 		column_of_x = [i[0] for i in all_targets]
 		column_of_y = [i[1] for i in all_targets]
 
-		ax.scatter(column_of_x, column_of_y,color='green', marker='o')
+		ax.scatter(column_of_x, column_of_y,color='green', marker='.')
 
 		plt.xlim([-20,20])
 		plt.ylim([-1,40])
