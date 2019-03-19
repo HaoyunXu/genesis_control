@@ -97,7 +97,7 @@ def main():
 		#target_array = Multi_targets()
 
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
-
+			print 'i = ', i
 
 			close_points = []
 			x_cam     = camera_list_targets_matrix[i][0]
@@ -107,9 +107,12 @@ def main():
 			age_cam   = camera_list_targets_matrix[i][4]
 
 			close_points = np.append(close_points, [x_cam, y_cam, v_cam])
+			print 'x_cam = ', x_cam
+			print 'y_cam = ', y_cam
+			print ' '
 			
 			for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
-
+				print 'j = ', j
 
 
 				x_radar     = radar_list_targets_matrix[j][0]
@@ -117,14 +120,16 @@ def main():
 				v_radar     = radar_list_targets_matrix[j][2]  #Speed
 				label_radar = radar_list_targets_matrix[j][3]
 
-
+				print 'x_radar = ', x_radar
+				print 'y_radar = ', y_radar
 				distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
-
+				print 'distance = ', distance
 
 				if distance < min_distance:
-
+					print 'Fusion !'
 					
 					close_points = np.append(close_points, [x_radar, y_radar, v_radar])
+					print 'close_points = ', close_points
 
 					# -----------------------------
 					#target.pos_x = x_avg
@@ -138,21 +143,22 @@ def main():
 					
 
 				elif distance > min_distance:
+					print 'No Fusion !'
 
 					# We add the label (1.0 = car, 2.0 = unknown)
 					b = np.append(radar_list_targets_matrix[j],2.0)
 					
 					all_targets.append(list(b))
 
-				matrix_close_points = np.reshape(close_points,(len(close_points)/3,3))
-				x_avg = np.mean(matrix_close_points[:,0])
-				y_avg = np.mean(matrix_close_points[:,1])
-				v_avg = np.mean(matrix_close_points[:,2])
+			matrix_close_points = np.reshape(close_points,(len(close_points)/3,3))
+			x_avg = np.mean(matrix_close_points[:,0])
+			y_avg = np.mean(matrix_close_points[:,1])
+			v_avg = np.mean(matrix_close_points[:,2])
 
 
-				# We average and add the label (1.0 = car)
-				point_average = [x_avg, y_avg, v_avg, 1.0]
-				all_targets.append(point_average)
+			# We average and add the label (1.0 = car)
+			point_average = [x_avg, y_avg, v_avg, 1.0]
+			all_targets.append(point_average)
 
 
 		#pub_all_targets.publish(target_array)
