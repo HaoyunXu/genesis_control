@@ -9,8 +9,9 @@ from std_msgs.msg import Float32MultiArray
 from genesis_msgs.msg import target
 from genesis_msgs.msg import Multi_targets
 
-pub = rospy.Publisher('Multi_targets', Multi_targets, queue_size=10)
-# PUT ANOTHER PUB FOR Cruise control
+pub_acc             = rospy.Publisher('radar_targets_acc', Multi_targets, queue_size=10)
+pub_all_targets     = rospy.Publisher('multi_targets', Multi_targets, queue_size=10)
+
 
 radar_list_targets           = None
 camera_list_targets          = None
@@ -41,18 +42,16 @@ def main():
 
 	# ------------------------------------------------------------
 	# Initialize the figure
-	# f, ax = plt.subplots(1)
-	# plt.ion()
+	f, ax = plt.subplots(1)
+	plt.ion()
 
 	# ------------------------------------------------------------
-
-
 
 
 	while not rospy.is_shutdown():
 
 		# Refresh plot
-		# ax.clear()
+		ax.clear()
 
 		# ------------------------------------------------------------
 		# If no targets detected, the global variables are not updated so
@@ -93,18 +92,25 @@ def main():
 
 		all_targets = []
 		min_distance = 5 #Min distance between two points to be considered the same points
-		target_array = Multi_targets()
+		
+		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
+		#target_array = Multi_targets()
+
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
-			camera_point_in_memory = False
-			print '  '
-			print 'i = ', i
+
+
+			close_points = []
+			x_cam     = camera_list_targets_matrix[i][0]
+			y_cam     = camera_list_targets_matrix[i][1]
+			v_cam     = camera_list_targets_matrix[i][2] #Speed
+			label_cam = camera_list_targets_matrix[i][3]
+			age_cam   = camera_list_targets_matrix[i][4]
+
+			close_points = np.append(close_points, [x_cam, y_cam, v_cam])
+			
 			for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
-				print 'j = ', j
-				x_cam     = camera_list_targets_matrix[i][0]
-				y_cam     = camera_list_targets_matrix[i][1]
-				v_cam     = camera_list_targets_matrix[i][2] #Speed
-				label_cam = camera_list_targets_matrix[i][3]
-				age_cam   = camera_list_targets_matrix[i][4]
+
+
 
 				x_radar     = radar_list_targets_matrix[j][0]
 				y_radar     = radar_list_targets_matrix[j][1]
@@ -113,67 +119,69 @@ def main():
 
 
 				distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
-				#print 'distance = ', distance
+
+
 				if distance < min_distance:
 
-					x_average = (x_cam + x_radar)/2
-					y_average = (y_cam + y_radar)/2
-					v_average = (v_cam + v_radar)/2
+					
+					close_points = np.append(close_points, [x_radar, y_radar, v_radar])
 
-					# We average and add the label (1.0 = car)
-					point_average = [x_average, y_average, v_average, 1.0]
-					target.pos_x = x_average
-					target.pos_y = y_average
-					target.speed = v_average
-					target.category = 1
-					target.counter = i
-					print(type(target_array.data))
-					target_array.data.append(target)
-					print 'point_average = ', point_average
-					#all_targets.append(point_average)
-					a = np.append(camera_list_targets_matrix[i],1.0)
-					all_targets.append(list(a))
-					camera_point_in_memory = True
-				else:
+					# -----------------------------
+					#target.pos_x = x_avg
+					#target.pos_y = y_avg
+					#target.speed = v_avg
+					#target.category = 1
+					#target.counter = i
+
+					#target_array.data.append(target)
+					# -----------------------------
+					
+
+				elif distance > min_distance:
 
 					# We add the label (1.0 = car, 2.0 = unknown)
 					b = np.append(radar_list_targets_matrix[j],2.0)
-					print 'b = ',b
-					if camera_point_in_memory == False:
-						a = np.append(camera_list_targets_matrix[i],1.0)
-						print 'a = ', a
-						camera_point_in_memory = True
-						all_targets.append(list(a))
-
-
+					
 					all_targets.append(list(b))
-		pub.publish(target_array)
+
+				matrix_close_points = np.reshape(close_points,(len(close_points)/3,3))
+				x_avg = np.mean(matrix_close_points[:,0])
+				y_avg = np.mean(matrix_close_points[:,1])
+				v_avg = np.mean(matrix_close_points[:,2])
+
+
+				# We average and add the label (1.0 = car)
+				point_average = [x_avg, y_avg, v_avg, 1.0]
+				all_targets.append(point_average)
+
+
+		#pub_all_targets.publish(target_array)
 		# ------------------------------------------------------------
 		# Here we plot the targets
 		# Change the indexes !
-		print type(all_targets)
+		#print type(all_targets)
 		print all_targets
 		print ' '
-		column_of_x = [i[0] for i in all_targets]
-		column_of_y = [i[1] for i in all_targets]
+		#column_of_x = [i[0] for i in all_targets]
+		#column_of_y = [i[1] for i in all_targets]
 
 		#ax.scatter(column_of_x, column_of_y,color='green', marker='.')
 
 		# ------------------------------------------------------------
 		# Plot test
-		# for i in range(len(all_targets)):
-		# 	if all_targets[i][3] == 1.0:
-		# 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = '.')
-		# 	else:
-		# 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = '.')
+		for i in range(len(all_targets)):
+			if all_targets[i][3] == 1.0:
+				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = '.')
+		 	else:
+		 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = '.')
 
 	    # End plot test
 		# ------------------------------------------------------------
 
-		# plt.xlim([-20,20])
-		# plt.ylim([-1,40])
-		# plt.grid()
-		# f.canvas.draw()  # Do I need this ?
+		plt.xlim([-20,20])
+		plt.ylim([-1,40])
+		plt.grid()
+		f.canvas.draw()  # Do I need this ?
 		plt.pause(0.001) # Do I need this ?
 
 
