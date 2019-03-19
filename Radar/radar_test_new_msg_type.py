@@ -219,7 +219,7 @@ def radar_draw_loop():
 				if abs(camera_x[i]) > 0.1 or abs(camera_y[i]) > 0.1: # Remove all the (0,0)
 
 					if camera_valid[i] > 0 and camera_age > 0:
-						#ax2.plot(-camera_y[i], camera_x[i], 'go', markersize=8)
+						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
 						list_targets_camera.append(-camera_y[i])
 						list_targets_camera.append(camera_x[i])
 						list_targets_camera.append(camera_speed[i])
@@ -227,7 +227,7 @@ def radar_draw_loop():
 						list_targets_camera.append(camera_age[i])
 						
 					else:
-						#ax2.plot(-camera_y[i], camera_x[i], 'ro', markersize=8)
+						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
 						list_targets_camera.append(-camera_y[i])
 						list_targets_camera.append(camera_x[i])
 						list_targets_camera.append(camera_speed[i])
