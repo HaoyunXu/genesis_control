@@ -9,7 +9,7 @@ from std_msgs.msg import Float32MultiArray
 from genesis_msgs.msg import target
 from genesis_msgs.msg import Multi_targets
 
-pub_acc             = rospy.Publisher('radar_targets_acc', Multi_targets, queue_size=10)
+pub_acc             = rospy.Publisher('radar_targets_acc', target, queue_size=10)
 pub_all_targets     = rospy.Publisher('multi_targets', Multi_targets, queue_size=10)
 
 
@@ -94,7 +94,7 @@ def main():
 		min_distance = 5 #Min distance between two points to be considered the same points
 		
 		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
-		#target_array = Multi_targets()
+		target_array = Multi_targets()
 
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
 			print 'i = ', i
@@ -131,16 +131,6 @@ def main():
 					close_points = np.append(close_points, [x_radar, y_radar, v_radar])
 					print 'close_points = ', close_points
 
-					# -----------------------------
-					#target.pos_x = x_avg
-					#target.pos_y = y_avg
-					#target.speed = v_avg
-					#target.category = 1
-					#target.counter = i
-
-					#target_array.data.append(target)
-					# -----------------------------
-					
 
 				elif distance > min_distance:
 					print 'No Fusion !'
@@ -150,18 +140,45 @@ def main():
 					
 					all_targets.append(list(b))
 
+					target_far = target()
+					target_far.pos_x    = x_radar
+					target_far.pos_y    = y_radar
+					target_far.speed    = v_radar
+					target_far.category = 2
+					target_far.counter  = j
+
+					target_array.data.append(target_far)
+
 			matrix_close_points = np.reshape(close_points,(len(close_points)/3,3))
 			x_avg = np.mean(matrix_close_points[:,0])
 			y_avg = np.mean(matrix_close_points[:,1])
 			v_avg = np.mean(matrix_close_points[:,2])
 
+			# ---------------------
+			# This is for publishing
+			target_avg = target()
+			target_avg.pos_x    = x_avg
+			target_avg.pos_y    = y_avg
+			target_avg.speed    = v_avg
+			target_avg.category = 1
+			target_avg.counter  = i   # Not relevant to put i
 
+			# Append the avg point (the points close to car) in the target array
+			target_array.data.append(target_avg)
+
+			# ---------------------
+			# This is for plotting
 			# We average and add the label (1.0 = car)
 			point_average = [x_avg, y_avg, v_avg, 1.0]
 			all_targets.append(point_average)
 
+			# ---------------------
+			# Publish for ACC
+			pub_acc.publish(target_avg)			
 
-		#pub_all_targets.publish(target_array)
+		pub_all_targets.publish(target_array)
+		
+		
 		# ------------------------------------------------------------
 		# Here we plot the targets
 		# Change the indexes !
