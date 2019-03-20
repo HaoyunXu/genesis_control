@@ -194,9 +194,9 @@ def main():
 		# Plot test
 		for i in range(len(all_targets)):
 			if all_targets[i][3] == 1.0:
-				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = '.')
+				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = 'o')
 		 	else:
-		 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = '.')
+		 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = 'o')
 
 	    # End plot test
 		# ------------------------------------------------------------
