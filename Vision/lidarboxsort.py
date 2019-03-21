@@ -25,6 +25,7 @@ def parseBoxes(data):
 	data_ped.header = data.header
 	data_car.header = data.header
 	data_follow.header = data.header
+
 	for i in range(len(data.boxes)):
 		x = data.boxes[i].pose.position.x
 		y = data.boxes[i].pose.position.y
@@ -35,7 +36,7 @@ def parseBoxes(data):
 			# # Vehicle
 			# if (height < 5 and height > 0.5) and (length < 20 and length > 0) and (width < 20 and width > 0):
 			data_follow.boxes.append(data.boxes[i])
-		if (y<30 and y>-10) and (x<8 and x>-8):
+		if (y<20 and y>-10) and (x<8 and x>-8):
 			height = data.boxes[i].dimensions.z
 			length = data.boxes[i].dimensions.x
 			width = data.boxes[i].dimensions.y
