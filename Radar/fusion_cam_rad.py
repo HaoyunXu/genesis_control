@@ -9,7 +9,7 @@ from std_msgs.msg import Float32MultiArray
 from genesis_msgs.msg import target
 from genesis_msgs.msg import Multi_targets
 
-pub_acc             = rospy.Publisher('radar_targets_acc', target, queue_size=10)
+pub_acc             = rospy.Publisher('radar_targets_acc', Multi_targets, queue_size=10)
 pub_all_targets     = rospy.Publisher('multi_targets', Multi_targets, queue_size=10)
 
 
@@ -95,7 +95,7 @@ def main():
 		
 		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
 		target_array = Multi_targets()
-
+		targets_cars = Multi_targets()
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
 			print 'i = ', i
 
@@ -163,6 +163,9 @@ def main():
 			target_avg.category = 1
 			target_avg.counter  = i   # Not relevant to put i
 
+			# Put that in the array of detected cars
+			targets_cars.data.append(target_avg)
+
 			# Append the avg point (the points close to car) in the target array
 			target_array.data.append(target_avg)
 
@@ -174,8 +177,8 @@ def main():
 
 			# ---------------------
 			# Publish for ACC
-			pub_acc.publish(target_avg)			
 
+		pub_acc.publish(targets_cars)			
 		pub_all_targets.publish(target_array)
 		
 		
