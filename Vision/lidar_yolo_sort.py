@@ -154,7 +154,7 @@ def LeadCarUpdate(msg):
 # 					# 	lidar_array.data[obj_i].category = 2
 # 						ly_array.data[obj_i].counter = s
 #
-# 				# print 'typearray: %s, x: %d, y: %d, h: %d, w: %d, score: %f\n' % (msg.type,x,y,h,w,s)
+# 				# print 'typearray: %s, xnts_no_ground: %d, y: %d, h: %d, w: %d, score: %f\n' % (msg.type,x,y,h,w,s)
 # 				cv2.rectangle(img_local, (x,y), (x+w, y+h),color = color , thickness = 3)
 # 			img_msg = CvBridge().cv2_to_imgmsg(img_local, encoding="bgr8")
 # 			pub_img_proc.publish(img_msg)
@@ -187,7 +187,7 @@ def parseBoxes(data):
 
 		if (y<50 and y>0) and (x<2.5 and x>-2.5):
 			data_follow.boxes.append(data.boxes[i])
-		if (y<25 and y>-10) and (x<8 and x>-15):
+		if (y<50 and y>-10) and (x<8 and x>-12):
 			height = data.boxes[i].dimensions.z
 			length = data.boxes[i].dimensions.x
 			width = data.boxes[i].dimensions.y
