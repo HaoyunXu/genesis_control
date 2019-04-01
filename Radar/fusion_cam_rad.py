@@ -76,7 +76,7 @@ def main():
 			radar_list_targets_matrix  = np.array(radar_list_targets).reshape(len(radar_list_targets)/4,4)     # Number of rows and columns (x,y,speed,label)
 
 		if camera_list_targets != None:
-			camera_list_targets_matrix = np.array(camera_list_targets).reshape(len(camera_list_targets)/5, 5)  # Number of rows and columns (x,y,speed)
+			camera_list_targets_matrix = np.array(camera_list_targets).reshape(len(camera_list_targets)/6, 6)  # Number of rows and columns (x,y,speed). 6 is the number of info from camera we have (x,y, speed, label, age, lane)
 
 
 
@@ -91,7 +91,7 @@ def main():
 		#        2.0 = Unknown
 
 		all_targets = []
-		min_distance = 5 #Min distance between two points to be considered the same points
+		min_distance = 3 #Min distance between two points to be considered the same points
 		
 		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
 		target_array = Multi_targets()
@@ -105,6 +105,7 @@ def main():
 			v_cam     = camera_list_targets_matrix[i][2] #Speed
 			label_cam = camera_list_targets_matrix[i][3]
 			age_cam   = camera_list_targets_matrix[i][4]
+			lane_cam  = camera_list_targets_matrix[i][5]
 
 			close_points = np.append(close_points, [x_cam, y_cam, v_cam])
 			print 'x_cam = ', x_cam
@@ -163,8 +164,10 @@ def main():
 			target_avg.category = 1
 			target_avg.counter  = i   # Not relevant to put i
 
-			# Put that in the array of detected cars
-			targets_cars.data.append(target_avg)
+			if lane_cam == 0: # Same lane as our car. The cars in the other lane shouldn't appear on the tapic for cruise control
+
+				# Put that in the array of detected cars
+				targets_cars.data.append(target_avg)
 
 			# Append the avg point (the points close to car) in the target array
 			target_array.data.append(target_avg)

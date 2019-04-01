@@ -168,6 +168,7 @@ def radar_draw_loop():
 			radar_acc    = radar.get('acc')
 			radar_angle  = radar.get('angle')
 			radar_width  = radar.get('width')
+			
 
 			for i in range(64):       # FIlTER BY SPEED, STATUS ? 
 				if radar_status[i] > 0:
@@ -225,6 +226,7 @@ def radar_draw_loop():
 						list_targets_camera.append(camera_speed[i])
 						list_targets_camera.append(1.0)
 						list_targets_camera.append(camera_age[i])
+						list_targets_camera.append(camera_lane[i])
 						
 					else:
 						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
@@ -233,6 +235,7 @@ def radar_draw_loop():
 						list_targets_camera.append(camera_speed[i])
 						list_targets_camera.append(2.0)
 						list_targets_camera.append(camera_age[i])
+						list_targets_camera.append(camera_lane[i])
 
 			mat2.data = list_targets_camera
 			pub_camera.publish(mat2)
