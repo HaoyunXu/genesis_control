@@ -132,6 +132,9 @@ function go_cmd_callback(msg::BoolMsg)
 		command_stop = false
 		v_f = 3.0
 		stop_index=stop_index+1
+		if stop_index>length(s_stop_array)
+			stop_index = length(s_stop_array)
+		end
 		s_stop = s_stop_array[stop_index]
 		just_started = 100
 		callback_log = true
