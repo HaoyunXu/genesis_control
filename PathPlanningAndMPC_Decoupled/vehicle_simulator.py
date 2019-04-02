@@ -3,7 +3,7 @@ import rospy
 import numpy as np
 import math
 from std_msgs.msg import Float32 as float_msg
-from genesis_path_follower.msg import state_est
+from genesis_control.msg import state_est
 
 class VehicleSimulator():
 	'''
@@ -26,7 +26,7 @@ class VehicleSimulator():
 		self.dt_model = 0.01				# vehicle model update period (s) and frequency (Hz)
 		self.hz = int(1.0/self.dt_model)
 		self.r = rospy.Rate(self.hz)
-		
+
 		# Simulated Vehicle State.
 		self.X   = rospy.get_param('X0', -300.0) 	# X position (m)
 		self.Y   = rospy.get_param('Y0', -450.0) 	# Y position (m)
@@ -34,7 +34,7 @@ class VehicleSimulator():
 		self.vx  = rospy.get_param('V0', 0.0)		# longitudinal velocity (m/s)
 		self.vy  = 0.0								# lateral velocity (m/s)
 		self.wz  = 0.0								# yaw rate (rad/s)
-		
+
 		self.acc_time_constant = 0.4 # s
 		self.df_time_constant  = 0.1 # s
 
@@ -43,7 +43,7 @@ class VehicleSimulator():
 	def pub_loop(self):
 		while not rospy.is_shutdown():
 			self._update_vehicle_model()
-			
+
 			curr_state = state_est()
 			curr_state.header.stamp = rospy.Time.now()
 			curr_state.x   = self.X
@@ -76,15 +76,15 @@ class VehicleSimulator():
 
 		deltaT = self.dt_model/disc_steps
 		self._update_low_level_control(self.dt_model)
-		for i in range(disc_steps):			
+		for i in range(disc_steps):
 
 			# Compute tire slip angle
 			alpha_f = 0.0
 			alpha_r = 0.0
 			if math.fabs(self.vx) > 1.0:
 				alpha_f = self.df - np.arctan2( self.vy+lf*self.wz, self.vx )
-				alpha_r = - np.arctan2( self.vy-lr*self.wz , self.vx)        		
-			
+				alpha_r = - np.arctan2( self.vy-lr*self.wz , self.vx)
+
 			# Compute lateral force at front and rear tire (linear model)
 			Fyf = C_alpha_f * alpha_f
 			Fyr = C_alpha_r * alpha_r
@@ -92,7 +92,7 @@ class VehicleSimulator():
 			# Propagate the vehicle dynamics deltaT seconds ahead.
 			# Max with 0 is to prevent moving backwards.
 			vx_n  = max(0.0, self.vx  + deltaT * ( self.acc - 1/m*Fyf*np.sin(self.df) + self.wz*self.vy ) )
-			
+
 			# Ensure only forward driving.
 			if vx_n > 1e-6:
 				vy_n  = self.vy  + deltaT * ( 1.0/m*(Fyf*np.cos(self.df) + Fyr) - self.wz*self.vx )

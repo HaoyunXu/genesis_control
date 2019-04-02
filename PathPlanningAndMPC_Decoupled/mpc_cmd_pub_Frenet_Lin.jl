@@ -7,14 +7,14 @@
 #### ROBOTOS
 ###########################################
 using RobotOS
-@rosimport genesis_path_follower.msg: state_est
-@rosimport genesis_path_follower.msg: mpc_path
+@rosimport genesis_control.msg: state_est
+@rosimport genesis_control.msg: mpc_path
 @rosimport std_msgs.msg: UInt8
 @rosimport std_msgs.msg: Float32
 @rosimport std_msgs.msg: Bool
 @rosimport std_msgs.msg: Float32MultiArray
 rostypegen()
-using genesis_path_follower.msg
+using genesis_control.msg
 using std_msgs.msg
 using PyCall
 

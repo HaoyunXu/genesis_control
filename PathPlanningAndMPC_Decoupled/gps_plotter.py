@@ -3,14 +3,14 @@ import rospy
 import numpy as np
 import matplotlib.pyplot as plt
 from gps_utils import ref_gps_traj as r
-from genesis_path_follower.msg import state_est
-from genesis_path_follower.msg import mpc_path
+from genesis_control.msg import state_est
+from genesis_control.msg import mpc_path
 
 class PlotGPSTrajectory():
 	'''
 	A class to plot the global GPS trajectory and the vehicle's path tracking behavior.
 	'''
-	def __init__(self):		
+	def __init__(self):
 
 		# Load Global Trajectory
 		if rospy.has_param('mat_waypoints'):
@@ -36,11 +36,11 @@ class PlotGPSTrajectory():
 
 
 		# Set up Plot: includes full ("global") trajectory, target trajectory, MPC prediction trajectory, and vehicle position.
-		self.f = plt.figure()		
+		self.f = plt.figure()
 		plt.ion()
-		l1, = plt.plot(self.x_global_traj, self.y_global_traj, 'k') 			
-		l2, = plt.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')	
-		l3, = plt.plot(self.x_vehicle, self.y_vehicle, 'bo')	
+		l1, = plt.plot(self.x_global_traj, self.y_global_traj, 'k')
+		l2, = plt.plot(self.x_ref_traj,    self.y_ref_traj, 'rx')
+		l3, = plt.plot(self.x_vehicle, self.y_vehicle, 'bo')
 		l4, = plt.plot(self.x_mpc_traj, self.y_mpc_traj, 'g*')
 
 		plt.xlabel('X (m)'); plt.ylabel('Y (m)')
@@ -57,9 +57,9 @@ class PlotGPSTrajectory():
 		r  = rospy.Rate(10)
 		while not rospy.is_shutdown():
 			# Update Plot with fresh data.
-			self.l_arr[1].set_xdata(self.x_ref_traj); self.l_arr[1].set_ydata(self.y_ref_traj)		
-			self.l_arr[2].set_xdata(self.x_vehicle);  self.l_arr[2].set_ydata(self.y_vehicle)		
-			self.l_arr[3].set_xdata(self.x_mpc_traj); self.l_arr[3].set_ydata(self.y_mpc_traj)		
+			self.l_arr[1].set_xdata(self.x_ref_traj); self.l_arr[1].set_ydata(self.y_ref_traj)
+			self.l_arr[2].set_xdata(self.x_vehicle);  self.l_arr[2].set_ydata(self.y_vehicle)
+			self.l_arr[3].set_xdata(self.x_mpc_traj); self.l_arr[3].set_ydata(self.y_mpc_traj)
 			self.f.canvas.draw()
 			plt.pause(0.001)
 			r.sleep()
@@ -73,7 +73,7 @@ class PlotGPSTrajectory():
 		# Update the MPC planned (open-loop) trajectory.
 		self.x_mpc_traj = msg.xs
 		self.y_mpc_traj = msg.ys
-		
+
 		# Update the reference for the MPC module.
 		self.x_ref_traj = msg.xr_recon
 		self.y_ref_traj = msg.yr_recon

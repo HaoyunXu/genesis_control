@@ -7,12 +7,12 @@
 #### ROBOTOS
 ###########################################
 using RobotOS
-@rosimport genesis_path_follower.msg: state_est
-@rosimport genesis_path_follower.msg: mpc_path
+@rosimport genesis_control.msg: state_est
+@rosimport genesis_control.msg: mpc_path
 @rosimport std_msgs.msg: UInt8
 @rosimport std_msgs.msg: Float32
 rostypegen()
-using genesis_path_follower.msg
+using genesis_control.msg
 using std_msgs.msg
 using PyCall
 
@@ -27,7 +27,7 @@ end
 
 if has_param("track_using_time") && has_param("target_vel")
 	track_with_time = get_param("track_using_time")
-	target_vel = get_param("target_vel")	
+	target_vel = get_param("target_vel")
 else
 	error("Invalid rosparam trajectory definition: track_using_time and target_vel")
 end
@@ -77,7 +77,7 @@ else
 	des_speed = 0.00
 end
 
-ref_lock = false				
+ref_lock = false
 received_reference = false
 x_curr  = 0.0
 y_curr  = 0.0
@@ -115,7 +115,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop
 
-		if ! track_with_time		
+		if ! track_with_time
 			# fixed velocity-based path tracking
 			x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr, des_speed)
 
@@ -131,13 +131,13 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 				command_stop = true
 			end
 		end
-		
+
 		# Update Model
 		kmpc.update_init_cond(x_curr, y_curr, psi_curr, v_curr)
 		kmpc.update_reference(x_ref, y_ref, psi_ref, des_speed)
 
 	    ref_lock = false
-		
+
 		if command_stop == false
 			a_opt, df_opt, is_opt, solv_time = kmpc.solve_model()
 
@@ -160,7 +160,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			mpc_path_msg.xs   = res[1] 	# x_mpc
 			mpc_path_msg.ys   = res[2] 	# y_mpc
 			mpc_path_msg.vs   = res[3]	# v_mpc
-			mpc_path_msg.psis = res[4] 	# psi_mpc	
+			mpc_path_msg.psis = res[4] 	# psi_mpc
 			mpc_path_msg.xr   = res[5] 	# x_ref
 			mpc_path_msg.yr   = res[6] 	# y_ref
 			mpc_path_msg.vr   = [res[7]]	# v_ref
@@ -170,12 +170,12 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			publish(mpc_path_pub_obj, mpc_path_msg)
 		else
 			publish( acc_pub_obj,   Float32Msg(-1.0) )
-			publish( steer_pub_obj, Float32Msg(0.0) )		
+			publish( steer_pub_obj, Float32Msg(0.0) )
 		end
-		
+
 	    rossleep(loop_rate)
 	end
-end	
+end
 
 function start_mpc_node()
     init_node("dbw_mpc_pf")
@@ -191,16 +191,16 @@ function start_mpc_node()
 	# Start up Ipopt/Solver.
 	for i=1:3
 		kmpc.solve_model()
-	end    
+	end
 
 	publish(acc_enable_pub, UInt8Msg(2))
 	publish(steer_enable_pub, UInt8Msg(1))
 
-    pub_loop(acc_pub, steer_pub, mpc_path_pub)    
+    pub_loop(acc_pub, steer_pub, mpc_path_pub)
 end
 
 if ! isinteractive()
-	try 
+	try
     	start_mpc_node()
     catch x
     	print(x)

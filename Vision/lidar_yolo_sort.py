@@ -48,9 +48,12 @@ def LeadCarUpdate(msg):
 	compare_boxes.header = filter_boxes.header
 	compare_boxes.boxes = filter_boxes.boxes[:]
 
-	rc_x = msg.pos_x
-	rc_y = msg.pos_y
-	rc_v = msg.speed
+	if len(msg.data)==0:
+		print('no lead car')
+	else:
+		rc_x = msg.data[0].pos_x
+		rc_y = msg.data[0].pos_y
+		rc_v = msg.data[0].speed
 
 	distances = []
 	for i in range(len(compare_boxes.boxes)):
@@ -222,7 +225,7 @@ def radar_draw_loop():
 	sub_img = rospy.Subscriber("/image_raw", Image, img_callback, queue_size=2)
 
 	# radar lead car subscriber
-	rospy.Subscriber('/radar_targets_acc', target, LeadCarUpdate, queue_size = 2)
+	rospy.Subscriber('/radar_targets_acc', Multi_targets, LeadCarUpdate, queue_size = 2)
 
 	rospy.spin()
 if __name__=='__main__':

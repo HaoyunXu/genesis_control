@@ -5,7 +5,7 @@ from geometry_msgs.msg import TwistWithCovarianceStamped
 from sensor_msgs.msg import Imu
 from genesis_msgs.msg import SteeringReport
 import math as m
-from genesis_path_follower.msg import state_est
+from genesis_control.msg import state_est
 from tf.transformations import euler_from_quaternion
 
 # Vehicle State Publisher for the Hyundai Genesis.  Uses OxTS and vehicle CAN messages to localize.
@@ -28,7 +28,7 @@ def time_valid(ros_tm, tm_arr):
 
 ''' GPS -> XY '''
 def latlon_to_XY(lat0, lon0, lat1, lon1):
-	''' 
+	'''
 	Convert latitude and longitude to global X, Y coordinates,
 	using an equirectangular projection.
 
@@ -59,7 +59,7 @@ def parse_gps_fix(msg):
 def parse_gps_vel(msg):
 	# This function gets the velocity and low-pass filtered acceleration from the OxTS.
 	global tm_vel, vel, acc_filt
-	
+
 	v_east = msg.twist.twist.linear.x
 	v_north = msg.twist.twist.linear.y
 	v_gps = m.sqrt(v_east**2 + v_north**2)
@@ -89,7 +89,7 @@ def parse_imu_data(msg):
 
 	psi = yaw + 0.5 * m.pi
 	if psi > m.pi:
-		psi = - (2*m.pi - psi)		
+		psi = - (2*m.pi - psi)
 
 	# yaw in the Genesis OxTS coord system is wrt N = 0 (longitudinal axis of vehicle).
 	# in the OxTS driver code, there is a minus sign for heading
@@ -103,7 +103,7 @@ def parse_steering_angle(msg):
 	df = m.radians(msg.steering_wheel_angle) / 15.87
 
 def pub_loop():
-	rospy.init_node('state_publisher', anonymous=True)	
+	rospy.init_node('state_publisher', anonymous=True)
 	rospy.Subscriber('/gps/fix', NavSatFix, parse_gps_fix, queue_size=1)
 	rospy.Subscriber('/gps/vel', TwistWithCovarianceStamped, parse_gps_vel, queue_size=1)
 	rospy.Subscriber('/imu/data', Imu, parse_imu_data, queue_size=1)
@@ -119,19 +119,19 @@ def pub_loop():
 	LON0 = rospy.get_param('lon0')
 	YAW0 = rospy.get_param('yaw0')
 	time_check_on = rospy.get_param('time_check_on')
-	
+
 	state_pub = rospy.Publisher('state_est', state_est, queue_size=1)
 
 	r = rospy.Rate(100)
-	while not rospy.is_shutdown():		
-		
-		if None in (lat, lon, psi, vel, acc_filt, df): 
+	while not rospy.is_shutdown():
+
+		if None in (lat, lon, psi, vel, acc_filt, df):
 			r.sleep() # If the vehicle state info has not been received.
 			continue
 
 		curr_state = state_est()
 		curr_state.header.stamp = rospy.Time.now()
-		
+
 		# TODO: time validity check, only publish if data is fresh
 		#if time_check_on and not time_valid(curr_state.header.stamp,[tm_vel, tm_df, tm_imu, tm_gps]):
 		#	r.sleep()
@@ -146,7 +146,7 @@ def pub_loop():
 		curr_state.y   = Y
 		curr_state.psi = psi
 		curr_state.v   = vel
-		
+
 		curr_state.a   = acc_filt
 		curr_state.df  = df
 
