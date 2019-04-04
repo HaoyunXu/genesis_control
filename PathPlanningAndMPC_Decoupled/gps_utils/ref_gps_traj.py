@@ -121,21 +121,22 @@ class GPSRefTrajectory():
 		diff_dists = np.sum( (XY_traj - xy_query)**2, axis=1 )
 		closest_traj_ind = np.argmin(diff_dists) 	# extract index along path
 
-		if v_target is not None:
+		if v_target is not None: # currently used
 			v_track = np.zeros(17)
 			v_track[0] = v_current
+
+			#a gradual and linear change on velocity
 			for i in range(1,17):
 				v_track[i] = v_track[i-1] + (v_target - v_current)/16.0
 
 			#Use the smaller velocity between adaptive cruise control and refence tracking
-			if self.acc!=[] and self.acc!=None:
+			if self.acc is not None and self.acc.size >2:
 				v_track = np.minimum(v_track,self.acc)
-
 			# print("v_track:",v_track)
-			#v_track = v_target*np.ones(17)
-			return self.__waypoints_using_vtarget_frenet(closest_traj_ind, v_track, yaw_init,X_init, Y_init)			  #NOT PROPERLY IMPLEMENTED - JUST SO THAT IT WORKS
 
-		else:  # currently used
+			return self.__waypoints_using_vtarget_frenet(closest_traj_ind, v_track, yaw_init,X_init, Y_init)
+
+		else:
 			return self.__waypoints_using_time_frenet(closest_traj_ind, yaw_init, X_init, Y_init)			  #no v_ref, use time information for interpolation
 
 
@@ -207,8 +208,8 @@ class GPSRefTrajectory():
 		ey_curr = frenet_y
 		return self.s_interp, self.curv_interp, stop_cmd, s_curr, ey_curr, epsi_curr, self.x_interp, self.y_interp, self.psi_interp, self.v_interp
 
-		#############################################
-		########################### editted by Jiakai
+
+		#use v_target to calculate desired waypoints
 	def __waypoints_using_vtarget_frenet(self, closest_traj_ind, v_target, yaw_init,X_init, Y_init):
 		start_dist = self.trajectory[closest_traj_ind,6] # s0, cumulative dist corresponding to closest point
 
@@ -224,9 +225,9 @@ class GPSRefTrajectory():
 		self.psi_interp = self.__fix_heading_wraparound(psi_ref, yaw_init)
 
 
-		# print(dists_to_fit)
 		self.s_interp =  dists_to_fit
 		self.curv_interp = self.trajectory[closest_traj_ind,8:]	# extract local c(s) polynomial
+
 		# Send a stop command if the end of the trajectory is within the horizon of the waypoints.
 		# Alternatively, could use start_dist as well: if start_dist + some delta_s > end_dist, then stop.
 		stop_cmd = False
@@ -249,8 +250,6 @@ class GPSRefTrajectory():
 		return self.s_interp, self.curv_interp, stop_cmd, s_curr, ey_curr, epsi_curr, self.x_interp, self.y_interp, self.psi_interp,v_interp
 
 
-		########################### editted by Jiakai
-		#############################################
 
 	def __fix_heading_wraparound(self, psi_ref, psi_current):
 		# This code ensures that the psi_reference agrees with psi_current, that there are no jumps by +/- 2*pi.
@@ -273,5 +272,5 @@ class GPSRefTrajectory():
 
 
 	def _update_acc(self, newAcc):
-		#return v_ref = v_acc_gen.v_acc_callback(newAcc)
+		print("inside update function",newAcc)
 		self.acc = newAcc

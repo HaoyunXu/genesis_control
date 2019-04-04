@@ -24,16 +24,16 @@ def v_acc_callback(msg):
 	global received, v_ref, human_take_over
 	received = True
 	#unpack
-	vf = msg.data[0]
-	ve = msg.data[1]
-	d = msg.data[2]
+	vf = msg.data[0]   # front car vel
+	ve = msg.data[1]   # self vel
+	d = msg.data[2]    # relative distance
 
 	N = 17
 	v_ref = ve*np.ones(N)
 	deacc_max = -2.0
 	# The max deacceleration
 	d_brake = abs((ve**2-vf**2)/(2*deacc_max)) # The braking distance for max deacceleration
-	d_safe = d_brake + abs(ve-vf)*1
+	d_safe = d_brake + abs(ve-vf)*1   # braking distance + buffer (for one second reaction)
 
 	if (vf < ve):
 		v_ref[0] = ve
@@ -47,10 +47,6 @@ def v_acc_callback(msg):
 		else: # Send message to driver take-over
 			human_take_over = True
 
-	else:
-		pass
-
-	return v_ref
 
 
 def pub_loop(v_acc_pub_obj, human_take_over_pub_obj):
@@ -58,12 +54,13 @@ def pub_loop(v_acc_pub_obj, human_take_over_pub_obj):
 	rate = rospy.Rate(10) # 10hz
 	while not rospy.is_shutdown():
 		if human_take_over:
-			human_take_over_pub_obj.publish(BoolMsg(True))
+			human_take_over_pub_obj.publish(BoolMsg(data=True))
+			human_take_over = False
 		elif received:
-			v_acc_pub_obj.publish(v_acc)
-			received = False
+			v_acc_pub_obj.publish(Float32MultiArray(data=v_ref))
 		else:
 			v_acc_pub_obj.publish(Float32MultiArray(data=None))
+		received = False
 		rate.sleep()
 
 

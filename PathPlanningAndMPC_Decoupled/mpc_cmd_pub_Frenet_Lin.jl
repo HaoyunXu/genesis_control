@@ -101,34 +101,45 @@ s_curr = 0.0		# frenet
 ey_curr = 0.0		# frenet
 epsi_curr = 0.0		# frenet
 K_coeff = zeros(4)	# assuming curvature is described by polynomial of order 3
-v_f = 3.0
-stopped = false
+v_f = 5.0
 command_stop = false
 callback_log = true
 
-just_started = 100   #if the car just started, can't skip lat MPC
 dist_buffer = 5
 s_stop_array = [139.660552, 301.765776, 421.323314,575] #hardcoded stop distances
 stop_index = 1
 s_stop = s_stop_array[stop_index]
+take_over_flag = false
+
 
 function v_acc_callback(msg::Float32MultiArray)
 	grt[:_update_acc](msg.data)
 end
 
+# update v_f
 function vel_ref_callback(msg::Float32Msg)
 	global v_f, callback_log
-	v_f = msg.data
 	callback_log = false
 end
 
-#Modified by J&B
+# human take over: car brakes at -1 m/s^2
+function takeover_callback(msg::BoolMsg)
+	println("receive take over")
+	global command_stop, take_over_flag
+	if msg.data == true
+		command_stop = true
+		take_over_flag = true
+	end
+end
+
+# If received true, keep driving on the traj
 function go_cmd_callback(msg::BoolMsg)
-	global stopped, v_f, command_stop, just_started, s_stop, stop_index, s_stop_array, callback_log
-	println("receive command")
+	global v_f, command_stop, s_stop, stop_index, s_stop_array, callback_log, take_over_flag
+	println("receive go command")
 	println(msg.data)
-	if stopped && msg.data
-		stopped = false
+
+	#previously stopped because of reaching the end of traj
+	if command_stop && msg.data && !take_over_flag
 		command_stop = false
 		v_f = 3.0
 		stop_index=stop_index+1
@@ -136,18 +147,16 @@ function go_cmd_callback(msg::BoolMsg)
 			stop_index = length(s_stop_array)
 		end
 		s_stop = s_stop_array[stop_index]
-		just_started = 100
 		callback_log = true
-		#car_front_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
+
+	# stopped because human take over
+	elseif take_over_flag && msg.data && command_stop
+		take_over_flag = false
+		v_f = 3.0
+		command_stop = false
 	end
 end
-#Modified by J&B
 
-
-###############
-# Function to stop the car
-
-###############
 
 
 ###########################################
@@ -158,13 +167,11 @@ function state_est_callback(msg::state_est)
 	global x_curr, y_curr, psi_curr, v_curr
 	global received_reference
 
-	# if ref_lock == false
-		x_curr = msg.x
-		y_curr = msg.y
-		psi_curr = msg.psi
-		v_curr = msg.v
-		received_reference = true
-	# end
+	x_curr = msg.x
+	y_curr = msg.y
+	psi_curr = msg.psi
+	v_curr = msg.v
+	received_reference = true
 end
 
 
@@ -213,8 +220,6 @@ function compRefXYfromCurv(s0, s_max, k_coeff, hor)
 
 	ds = 0.25
 	s_interp = collect(0:ds:s_max)
-	print("s_interp")
-	print(s_interp)
 	x_interp = zeros(length(s_interp))
 	y_interp = zeros(length(s_interp))
 	psi_interp = zeros(length(s_interp))
@@ -263,39 +268,38 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 	        continue
 	    end
 
-		#Gradually increase v_ref when given the go cmd, don't do this when new v_ref is given
-		# if (v_f <=4.98) && callback_log
-		# 	v_f=v_f+0.02
-		# end
-
 	    global ref_lock				# Ref lock used to ensure that get/set of state doesn't happen simultaneously.
 	    ref_lock = true
 
-		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, stopped, just_started, s_stop
+		global x_curr, y_curr, psi_curr, v_curr, des_speed, command_stop, s_stop
 		global s_ref, K_coeff, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref
 		global a_opt, df_opt 	# contains current optimal inut and steering angle
 
-		if ! track_with_time
+		if ! track_with_time  #Currently using
 			# velocity tracking based waypoints
-			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)  ####editted by Jiakai
-			println("command stop:")
-			println(command_stop)
-			brake_dist = v_curr^2/2
-			println(brake_dist+s_curr+dist_buffer)
-			if (brake_dist+s_curr+dist_buffer) > s_stop
-				stopped = true
-			end
-			if stopped        #stop_cmd == true
+			s_ref, K_coeff, traj_end, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)  ####editted by Jiakai
+
+			#ideally this is not used, since we have hardcorded stop position
+			if traj_end == true
 				command_stop = true
 			end
 
 
-		else  # current version, time-based
-			# x_ref, y_ref, psi_ref, stop_cmd = grt[:get_waypoints](x_curr, y_curr, psi_curr);
+			brake_dist = v_curr^2/2
+			# hardcode stop location
+			# If car reach stop sign in a range of
+			if (brake_dist+s_curr+dist_buffer) > s_stop
+				command_stop = true
+			end
+
+
+		else  #time-based
 			# return reference points as well as current state (in Frenet framework)
 			# last three only used for visualization purposesbt
-			s_ref, K_coeff, stop_cmd, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr)
-			if stop_cmd == true
+			s_ref, K_coeff, traj_end, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr)
+
+			#ideally this is not used, since we have hardcorded stop position
+			if traj_end == true
 				command_stop = true
 			end
 		end
@@ -322,27 +326,27 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			solv_time_long_gurobi1_all[it_num+1] = solv_time_long_gurobi1
 			a_opt = a_opt_gurobi
 
-			log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Velocity: %.3f, Reference velocity: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1,v_curr,v_f)
-			loginfo(log_str_long_Gurobi)
+			# log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Velocity: %.3f, Reference velocity: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1,v_curr,v_f)
+			# loginfo(log_str_long_Gurobi)
 
 			rostm = get_rostime()
 			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
 
 			# if the speed is too slow and is not just started, skip lat MPC and apply 0 on steering angle
-			if v_curr < 0.1 && just_started==0
-				df_opt = 0.0;
-				solv_time_lat_gurobi1 = 0.0
-				log_str_lat = @sprintf("Speed is too SLOW: %.3f, skip lat MPC and apply 0.0 steer", v_curr)
-		    	loginfo(log_str_lat)
-			else
-				df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
-				solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
+			# if v_curr < 0.1
+			# 	df_opt = 0.0;
+			# 	solv_time_lat_gurobi1 = 0.0
+			# 	log_str_lat = @sprintf("Speed is too SLOW: %.3f, skip lat MPC and apply 0.0 steer", v_curr)
+		    # 	loginfo(log_str_lat)
+			# else
+			df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
+			solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
 
-				log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
-		    	loginfo(log_str_lat)
+			# log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
+	    	# loginfo(log_str_lat)
 
-				df_opt = df_opt_gurobi
-			end
+			df_opt = df_opt_gurobi
+			# end
 
 	    	# do not apply any inputs during warm start
 		    if it_num <= num_warmStarts
@@ -440,13 +444,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 		else
 			publish( acc_pub_obj,   Float32Msg(-1.0) )
-			#publish( steer_pub_obj, Float32Msg(0.0) )
-		end
-
-
-		#update just started
-		if just_started != 0
-			just_started = just_started-1
+			publish( steer_pub_obj, Float32Msg(0.0) )
 		end
 
 	    rossleep(loop_rate)
@@ -469,6 +467,7 @@ function start_mpc_node()
 	car_front_sub = Subscriber("car_front_vel",Float32Msg, vel_ref_callback, queue_size=2)
 	v_acc_sub = Subscriber("v_acc",Float32MultiArray, v_acc_callback, queue_size=2)
 	go_cmd_sub = Subscriber("go_cmd", BoolMsg, go_cmd_callback, queue_size=2)
+	takeover_sub = Subscriber("takeover", BoolMsg, takeover_callback, queue_size=2)
 
 	#publish(acc_enable_pub, UInt8Msg(2))
 	#publish(steer_enable_pub, UInt8Msg(1))
