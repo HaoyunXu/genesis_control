@@ -185,7 +185,7 @@ class MyFrame(wx.Frame):
         grid_sizer_12.Add((0, 0), 0, 0, 0)
         grid_sizer_12.Add(self.panel_2, 1, wx.EXPAND, 0)
         grid_sizer_8.Add(grid_sizer_12, 1, wx.EXPAND, 0)
-        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("/home/me131/Documents/Genesis GUI/blackcar.png", wx.BITMAP_TYPE_ANY))
+        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("/home/me131/catkin_ws/genesis control/blackcar.png", wx.BITMAP_TYPE_ANY))
         grid_sizer_8.Add(bitmap_1, 0, wx.ALIGN_CENTER, 0)
         sizer_1.Add(grid_sizer_8, 1, wx.EXPAND, 0)
         grid_sizer_6.Add(sizer_1, 1, wx.EXPAND, 0)
