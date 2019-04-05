@@ -14,6 +14,9 @@ def talker():
         pub.publish(Float32MultiArray(data=[0.0,5.0,6.0]))
         rate.sleep()
 
+
+        
+
 if __name__ == '__main__':
   try:
     talker()

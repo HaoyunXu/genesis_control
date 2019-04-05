@@ -12,7 +12,6 @@ from jsk_recognition_msgs.msg import BoundingBox
 from autoware_msgs.msg import image_obj
 from genesis_msgs.msg import target
 from genesis_msgs.msg import Multi_targets
-from std_msgs.msg import UInt8
 
 pub_ped = rospy.Publisher('ped_bb', BoundingBoxArray, queue_size=2)
 pub_car = rospy.Publisher('car_bb', BoundingBoxArray, queue_size=2)
@@ -22,31 +21,20 @@ pub_yolo = rospy.Publisher('yolo_bb',  BoundingBoxArray, queue_size=2)
 pub_ly_fuse = rospy.Publisher('ly_fuse', Multi_targets, queue_size=2)
 pub_leadc = rospy.Publisher('lead_car', BoundingBoxArray, queue_size=2)
 
-front_pub = rospy.Publisher('pnlvalue2', UInt8, queue_size=2)
-left_pub = rospy.Publisher('pnlvalue3', UInt8, queue_size=2)
-right_pub = rospy.Publisher('pnlvalue4', UInt8, queue_size=2)
 
 pub_img_proc = rospy.Publisher("/image_yolo", Image, queue_size=2)
 
 # Global varaibles
 img = None; img_lock = False; img_tm = None
 fx = 2346; cx = 644; #Camera Calibration
-personYolo_bb = []
-carYolo_bb = []
-yolo_person_time = None
-yolo_car_time = None
-
 lidar_array = Multi_targets()
 filter_boxes = BoundingBoxArray()
 
-class YoloDetection():
-	def __init__(self, x = None, y = None, h = None, w = None, score = None, degree = None):
-		self.x = x
-		self.y = y
-		self.w = w
-		self.h = h
-		self.score = score
-		self.degree = degree
+#### IS THIS CORRECT ?
+#pre_box  =
+#pre2_box  =
+#pre3_box  =
+#####
 
 def img_callback(msg):
 	# Maybe downsample?
@@ -182,36 +170,6 @@ def LeadCarUpdate(msg):
 # 		pub_yolo.publish(yolo_boxes)
 # 		pub_ly_fuse.publish(ly_array)
 
-
-def parseYoloBoxes(msg):
-	global personYolo_bb, carYolo_bb,yolo_person_time,yolo_car_time
-	if len(msg.obj) > 0:
-		print msg.header.stamp.secs + 1e-9 * msg.header.stamp.nsecs
-
-		bb_array = []
-		if msg.type == 'person':
-			bb_array = personYolo_bb
-			yolo_person_time = msg.header.stamp.secs + 1e-9 * msg.header.stamp.nsecs
-		elif msg.type == 'car':
-			bb_array = carYolo_bb
-			yolo_car_time = msg.header.stamp.secs + 1e-9 * msg.header.stamp.nsecs
-
-		bb_array[:] = []
-
-		for obj in msg.obj:
-			x = obj.x
-			y = obj.y
-			w = obj.width
-			h = obj.height
-			s = obj.score
-			degree = np.arctan(2346/(x-644)) / 3.1415 * 180
-			if s < 0.5:
-				continue
-			if degree < 0:
-				degree = degree + 180
-			print 'type: %s, x: %d, y: %d, h: %d, w: %d, score: %f, degree: %f\n' % (msg.type,x,y,h,w,s,degree)
-			bb_array.append( YoloDetection(x,y,h,w,s,degree) )
-
 def parseBoxes(data):
 	global lidar_array
 	global filter_boxes
@@ -220,15 +178,20 @@ def parseBoxes(data):
 	data_car = BoundingBoxArray()
 	data_follow = BoundingBoxArray()
 
+	#####
+	pre_box =  BoundingBoxArray()
+	pre2_box =  BoundingBoxArray()
+	pre3_box =  BoundingBoxArray()
+	#####pre2_box  =
+
+
 	data_ped.header = data.header
 	data_car.header = data.header
 	data_follow.header = data.header
 	filter_boxes.header = data.header
 	lidar_array = Multi_targets()
 
-	minl = 1000;
-	minr = 1000;
-	minf = 1000;
+
 
 	for i in range(len(data.boxes)):
 		lidar_target = target()
@@ -253,87 +216,70 @@ def parseBoxes(data):
 				# lidar_target.counter = .1
 			# Vehicle
 			elif (height < 5 and height > 0.5) and (length < 10 and length > 0) and (width < 10 and width > 0):
-				data_car.boxes.append(data.boxes[i])
+				####
+					for j in range(15)
+						# REMOVE
+						if abs(pre3_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) <= 0.5 and
+							abs(pre3_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) <= 0.5 and
+							abs(pre3_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) <= 0.25 and
+							abs(pre3_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) <= 0.25 and
+							abs(pre3_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) <= 0.25 and
+
+							abs(pre2_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) >= 0.5 and
+							abs(pre2_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) >= 0.5 and
+							abs(pre2_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) >= 0.25 and
+							abs(pre2_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) >= 0.25 and
+							abs(pre2_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) >= 0.25 and
+
+							abs(pre_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) >= 0.5 and
+							abs(pre_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) >= 0.5 and
+							abs(pre_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) >= 0.25 and
+							abs(pre_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) >= 0.25 and
+							abs(pre_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) >= 0.25
+
+							data_car.boxes.pop(i) # IS THAT CORRECT
+						# APPEND
+							elif abs(pre_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) >= 0.5 and
+								abs(pre_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) >= 0.5 and
+								abs(pre_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) >= 0.25 and
+								abs(pre_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) >= 0.25 and
+								abs(pre_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) >= 0.25
+				####
+
+								data_car.boxes.append(data.boxes[i])
 				# lidar_target.category = 1
 				# lidar_target.counter = .1
 			lidar_array.data.append(lidar_target)
 			filter_boxes.boxes.append(data.boxes[i])
 
-		if x>0 and x<minr and y<10 and y>-10:
-			minr = x
-		if x<0 and abs(x)<minl and y<10 and y>-10:
-			minl = abs(x)
-		if y>0 and y<minf and x<10 and x>10:
-			minf = y
+	####
+		pre3_box = pre2_box
+		pre2_box = pre_box
+		pre_box  = data.boxes
 
-	if minf < 5:
-		front_pub.publish(1)
-	elif minf < 10:
-		front_pub.publish(2)
-	else:
-		front_pub.publish(3)
-	if minl < 5:
-		left_pub.publish(1)
-	elif minl < 10:
-		left_pub.publish(2)
-	else:
-		left_pub.publish(3)
-	if minr < 5:
-		right_pub.publish(1)
-	elif minr < 10:
-		right_pub.publish(2)
-	else:
-		right_pub.publish(3)
+
+
 
 	pub_ped.publish(data_ped)
 	pub_car.publish(data_car)
 	pub_follow.publish(data_follow)
 
 
-def main_loop():
+def radar_draw_loop():
 	rospy.init_node('lidar_box_filter', anonymous = True)
 
 	# Lidar subscriber
 	rospy.Subscriber('/bounding_boxes', BoundingBoxArray, parseBoxes, queue_size = 2)
+
 	# Yolo subscribers
-	sub_person = rospy.Subscriber('/obj_person/image_obj', image_obj, parseYoloBoxes, queue_size = 2)
-	sub_car = rospy.Subscriber('/obj_car/image_obj', image_obj, parseYoloBoxes, queue_size = 2)
+	rospy.init_node('lidar_box_filter', anonymous = True)
+	# sub_person = rospy.Subscriber('/obj_person/image_obj', image_obj, parseYoloBoxes, queue_size = 2)
+	# sub_car = rospy.Subscriber('/obj_car/image_obj', image_obj, parseYoloBoxes, queue_size = 2)
 	sub_img = rospy.Subscriber("/image_raw", Image, img_callback, queue_size=2)
 
 	# radar lead car subscriber
 	rospy.Subscriber('/radar_targets_acc', Multi_targets, LeadCarUpdate, queue_size = 2)
 
-	r = rospy.Rate(10.0)
-	global img, personYolo_bb, carYolo_bb, img_tm, img_lock, yolo_person_time, yolo_car_time
-	while not rospy.is_shutdown():
-		img_local = None
-		# copy the image, get the lock
-		if (img is not None) and (img_lock == False):
-			img_lock = True
-			img_local = np.copy(img)
-			img_lock = False
-		else:
-			print 'Waiting for image.'
-
-		# overlay the boxes on the image and publish
-		if img_local is not None:
-			if yolo_person_time is None or abs(yolo_person_time - img_tm) > 0.1:
-				personYolo_bb[:] = []
-			elif len(personYolo_bb) > 0:
- 				for person in personYolo_bb:
-					cv2.rectangle(img_local, (person.x,person.y), (person.x+person.w, person.y+person.h), color = (255,0,0), thickness = 3)
-
-			if yolo_car_time is None or abs(yolo_car_time - img_tm) > 0.1:
-				carYolo_bb[:] = []
-			elif len(carYolo_bb) > 0:
- 				for car in carYolo_bb:
-					cv2.rectangle(img_local, (car.x,car.y), (car.x+car.w, car.y+car.h), color = (0,0,255), thickness = 3)
-			img_msg = CvBridge().cv2_to_imgmsg(img_local, encoding="bgr8")
-			pub_img_proc.publish(img_msg)
-
-		r.sleep()
-
-
-	#rospy.spin()
+	rospy.spin()
 if __name__=='__main__':
-	main_loop()
+	radar_draw_loop()

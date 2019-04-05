@@ -7,8 +7,7 @@
 # of ego car), and d (the distance between two cars). It will return velocity
 # profile only in safe conditions (distance is greater than safe distance, and
 # deacceleration is in the max deacceleration boundary). Otherwise it will publish
-# a True boolean message as a ROS node called "takeover_msg" to a ROS topic called
-# "takeover_bool".
+# a True boolean message as "takeover"
 
 import numpy as np
 import rospy

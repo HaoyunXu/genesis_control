@@ -32,6 +32,9 @@ def parseBoxes(data):
 		height = data.boxes[i].dimensions.z
 		length = data.boxes[i].dimensions.x
 		width = data.boxes[i].dimensions.y
+		minl = 1000;
+		minr = 1000;
+		minf = 1000;
 		if (y<50 and y>0) and (x<2.5 and x>-2.5):
 			# # Vehicle
 			# if (height < 5 and height > 0.5) and (length < 20 and length > 0) and (width < 20 and width > 0):
@@ -47,6 +50,13 @@ def parseBoxes(data):
 			elif (height < 5 and height > 0.5) and (length < 10 and length > 0) and (width < 10 and width > 0):
 				data_car.boxes.append(data.boxes[i])
 				counterc = counterc + 1
+			if x>0 and x<minr and y<10 and y>-10:
+				minr = x
+			if x<0 and abs(x)<minl and y<10 and y>-10
+				minl = abs(x)
+			if y>0 and y<minf and x<10 and x>10
+				minf = y
+
 
 	pub_ped.publish(data_ped)
 	pub_car.publish(data_car)

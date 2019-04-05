@@ -14,6 +14,7 @@
   <!-- Set track_using_time to False to use target_vel (m/s) instead. -->
   <param name="vehicle/track_using_time" type="bool" value="False" />
 	<param name="vehicle/go_cmd" type="bool" value="True" />
+	<param name="vehicle/takeover" type="bool" value="False" />
   <!--<param name="vehicle/target_vel" type="double" value="1.0" /> -->
 
   <!-- Waypoints CSV to specify path. -->
