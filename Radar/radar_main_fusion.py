@@ -5,11 +5,17 @@ import cv2
 import rospy
 import numpy as np
 import matplotlib.pyplot as plt
+from genesis_control.msg import target
 from std_msgs.msg import Float32MultiArray
-from genesis_msgs.msg import target
-from genesis_msgs.msg import Multi_targets
+from genesis_control.msg import Multi_targets
+from genesis_control.msg import WheelSpeedReport
 
-pub_acc             = rospy.Publisher('radar_targets_acc', Multi_targets, queue_size=10)
+iteration = 1
+list_cam_speed = []
+list_radar_speed = []
+list_wheel_speed = []
+
+pub_acc             = rospy.Publisher('/vehicle/radar_targets_acc', Multi_targets, queue_size=10)
 pub_all_targets     = rospy.Publisher('multi_targets', Multi_targets, queue_size=10)
 
 
@@ -30,20 +36,28 @@ def callback_camera(data):
 	global camera_list_targets
 	camera_list_targets = data.data
 
+def callback_wheel(data):
+	global wheel_speed
+	wheel_speed_front_left = data.wheel_speed_fl
+	wheel_speed_front_right = data.wheel_speed_fr
+
+	wheel_speed_kmph = 0.5 * (wheel_speed_front_left + wheel_speed_front_right)
+	wheel_speed = wheel_speed_kmph * 0.2777
 
 def main():
    	global camera_list_targets, radar_list_targets, previous_camera_list_targets, previous_radar_list_targets
-
-	rospy.init_node('listener', anonymous=True)
+	rospy.init_node('listener')
 
 	rospy.Subscriber("radar_targets", Float32MultiArray, callback_radar)
 	rospy.Subscriber("camera_targets", Float32MultiArray, callback_camera)
 
+	rospy.Subscriber("/vehicle/wheel_speeds", WheelSpeedReport, callback_wheel)
+
 
 	# ------------------------------------------------------------
 	# Initialize the figure
-	f, ax = plt.subplots(1)
-	plt.ion()
+	# f, ax = plt.subplots(1)
+	# plt.ion()
 
 	# ------------------------------------------------------------
 
@@ -51,7 +65,7 @@ def main():
 	while not rospy.is_shutdown():
 
 		# Refresh plot
-		ax.clear()
+		# ax.clear()
 
 		# ------------------------------------------------------------
 		# If no targets detected, the global variables are not updated so
@@ -92,10 +106,17 @@ def main():
 
 		all_targets = []
 		min_distance = 3 #Min distance between two points to be considered the same points
-		
+
 		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
 		target_array = Multi_targets()
 		targets_cars = Multi_targets()
+
+
+		global iteration
+		global list_cam_speed
+		global list_radar_speed
+		global list_wheel_speed
+
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
 			print 'i = ', i
 
@@ -108,12 +129,14 @@ def main():
 			lane_cam  = camera_list_targets_matrix[i][5]
 
 			close_points = np.append(close_points, [x_cam, y_cam, v_cam])
-			print 'x_cam = ', x_cam
-			print 'y_cam = ', y_cam
+			#print 'x_cam = ', x_cam
+			#print 'y_cam = ', y_cam
+			#print ' '
 			print ' '
-			
+			print 'v_cam = ', v_cam # <<<<<<<<<<<<<<<<<<<<<<----------------------------
+
 			for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
-				print 'j = ', j
+				#print 'j = ', j
 
 
 				x_radar     = radar_list_targets_matrix[j][0]
@@ -121,24 +144,42 @@ def main():
 				v_radar     = radar_list_targets_matrix[j][2]  #Speed
 				label_radar = radar_list_targets_matrix[j][3]
 
-				print 'x_radar = ', x_radar
-				print 'y_radar = ', y_radar
+				#print 'x_radar = ', x_radar
+				#print 'y_radar = ', y_radar
 				distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
-				print 'distance = ', distance
+				#print 'distance = ', distance
 
 				if distance < min_distance:
-					print 'Fusion !'
-					
+					#print 'Fusion !'
+					# I want to plot this:
+
 					close_points = np.append(close_points, [x_radar, y_radar, v_radar])
-					print 'close_points = ', close_points
+					#print 'close_points = ', close_points
+
+					print 'v_radar = ', v_radar
+					print 'v_cam = ', v_cam
+					print 'wheel_speed = ', wheel_speed
+					print iteration
+					iteration += 1
+
+					list_cam_speed = list_cam_speed + [v_cam]
+					list_radar_speed = list_radar_speed + [v_radar]
+					list_wheel_speed = list_wheel_speed + [wheel_speed]
+
+					plt.plot(list_cam_speed,'b')
+					plt.plot(list_radar_speed,'g')
+					plt.plot(list_wheel_speed,'r')
+
+
+					plt.pause(0.001) # Do I need this ?
 
 
 				elif distance > min_distance:
-					print 'No Fusion !'
+					#print 'No Fusion !'
 
 					# We add the label (1.0 = car, 2.0 = unknown)
 					b = np.append(radar_list_targets_matrix[j],2.0)
-					
+
 					all_targets.append(list(b))
 
 					target_far = target()
@@ -164,7 +205,7 @@ def main():
 			target_avg.category = 1
 			target_avg.counter  = i   # Not relevant to put i
 
-			if lane_cam == 0: # Same lane as our car. The cars in the other lane shouldn't appear on the tapic for cruise control
+			if lane_cam == 0: # Same lane as our car. The cars in the other lane shouldn't appear on the topic for cruise control
 
 				# Put that in the array of detected cars
 				targets_cars.data.append(target_avg)
@@ -181,16 +222,16 @@ def main():
 			# ---------------------
 			# Publish for ACC
 
-		pub_acc.publish(targets_cars)			
+		pub_acc.publish(targets_cars)
 		pub_all_targets.publish(target_array)
-		
-		
+
+
 		# ------------------------------------------------------------
 		# Here we plot the targets
 		# Change the indexes !
 		#print type(all_targets)
-		print all_targets
-		print ' '
+		#print all_targets
+		#print ' '
 		#column_of_x = [i[0] for i in all_targets]
 		#column_of_y = [i[1] for i in all_targets]
 
@@ -198,19 +239,21 @@ def main():
 
 		# ------------------------------------------------------------
 		# Plot test
-		for i in range(len(all_targets)):
-			if all_targets[i][3] == 1.0:
-				ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = 'o')
-		 	else:
-		 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = 'o')
+		# for i in range(len(all_targets)):
+		# 	if all_targets[i][3] == 1.0:
+		# 		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'green', marker = 'o')
+		#  	else:
+		#  		ax.scatter(all_targets[i][0], all_targets[i][1], color = 'red', marker = 'o')
 
 	    # End plot test
 		# ------------------------------------------------------------
 
-		plt.xlim([-20,20])
-		plt.ylim([-1,40])
+		# plt.xlim([-20,20])
+		# plt.ylim([-1,40])
+		# plt.grid()
+		# f.canvas.draw()  # Do I need this ?
+		# plt.legend(loc='upper left')
 		plt.grid()
-		f.canvas.draw()  # Do I need this ?
 		plt.pause(0.001) # Do I need this ?
 
 

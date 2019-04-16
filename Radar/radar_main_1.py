@@ -7,10 +7,10 @@ from sensor_msgs.msg import Image
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
 from std_msgs.msg import Float32MultiArray
-from genesis_msgs.msg import ESRTrackReport
 from std_msgs.msg import MultiArrayDimension
 from cv_bridge import CvBridge, CvBridgeError
-from genesis_msgs.msg import MandoObjectReport
+from genesis_control.msg import ESRTrackReport
+from genesis_control.msg import MandoObjectReport
 
 
 
@@ -62,7 +62,7 @@ def parseRadar(msg):
 
 def parseObject(msg):
 	global objects
-	
+
 
  	obj_id        = msg.object_identifier # > 0 = a target
  	valid         = msg.object_valid
@@ -84,7 +84,7 @@ def parseObject(msg):
 
 
 def radar_draw_loop():
-	rospy.init_node('radar_camera_targets', anonymous = True)
+	rospy.init_node('radar_camera_targets')
 
 	rospy.Subscriber('/image_raw', Image, parseImg, queue_size = 2)
 	rospy.Subscriber('/mando_radar/esr_track', ESRTrackReport, parseRadar, queue_size = 2)
@@ -141,7 +141,7 @@ def radar_draw_loop():
 	global img, radar, objects
 
 	while not rospy.is_shutdown():
-		
+
 
 		if img is None:
 			print('Waiting for img')
@@ -153,12 +153,12 @@ def radar_draw_loop():
 
 		#ax2.clear()
 
-		
+
 # ------------------------------------------------------
-		
+
 		global list_targets_radar
 		list_targets_radar = []
-		
+
 		if radar != {}:
 
 			radar_status = radar.get('status')
@@ -168,11 +168,11 @@ def radar_draw_loop():
 			radar_acc    = radar.get('acc')
 			radar_angle  = radar.get('angle')
 			radar_width  = radar.get('width')
-			
 
-			for i in range(64):       # FIlTER BY SPEED, STATUS ? 
+
+			for i in range(64):       # FIlTER BY SPEED, STATUS ?
 				if radar_status[i] > 0:
-				
+
 					heading = - math.radians(radar_angle[i]) + math.pi/2
 					radar_x = radar_dist[i] * math.cos(heading)
 					radar_y = radar_dist[i] * math.sin(heading)
@@ -193,9 +193,9 @@ def radar_draw_loop():
 			mat1.data = list_targets_radar
 			pub_radar.publish(mat1)
 			r.sleep() # NEED THIS ?
-							
-					
-				
+
+
+
 # ---------------------------------------------------------
 
 		global list_targets_camera
@@ -227,7 +227,7 @@ def radar_draw_loop():
 						list_targets_camera.append(1.0)
 						list_targets_camera.append(camera_age[i])
 						list_targets_camera.append(camera_lane[i])
-						
+
 					else:
 						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
 						list_targets_camera.append(-camera_y[i])
@@ -239,7 +239,7 @@ def radar_draw_loop():
 
 			mat2.data = list_targets_camera
 			pub_camera.publish(mat2)
-			r.sleep()  # Need this ? 
+			r.sleep()  # Need this ?
 # ---------------------------------------------------------
 
 		#plt.xlim([-20, 20])
