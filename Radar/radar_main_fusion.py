@@ -61,7 +61,7 @@ def main():
 
 	# ------------------------------------------------------------
 
-
+	rate = rospy.Rate(20)
 	while not rospy.is_shutdown():
 
 		# Refresh plot
@@ -254,7 +254,7 @@ def main():
 		# f.canvas.draw()  # Do I need this ?
 		# plt.legend(loc='upper left')
 		plt.grid()
-		plt.pause(0.001) # Do I need this ?
+		# plt.pause(0.001) # Do I need this ?
 
 
 		# ------------------------------------------------------------
@@ -263,7 +263,7 @@ def main():
 		previous_radar_list_targets  = radar_list_targets
 		# ------------------------------------------------------------
 
-		rospy.sleep(0.5)
+		rate.sleep()
 
 	rospy.spin()
 
