@@ -125,6 +125,8 @@ end
 # human take over: car brakes at -1 m/s^2
 function takeover_callback(msg::BoolMsg)
 	println("receive take over")
+	println("receive take over")
+	println("receive take over")
 	global command_stop, take_over_flag
 	if msg.data == true
 		command_stop = true
@@ -136,7 +138,6 @@ end
 function go_cmd_callback(msg::BoolMsg)
 	global v_f, command_stop, s_stop, stop_index, s_stop_array, callback_log, take_over_flag
 	println("receive go command")
-	println(msg.data)
 
 	#previously stopped because of reaching the end of traj
 	if command_stop && msg.data && !take_over_flag
@@ -217,7 +218,7 @@ function compRefXYfromCurv(s0, s_max, k_coeff, hor)
 	# alternatively, could just use kin. model to forward integrate in time
 	# X = X_des - e_y * sin(psi), Y = Y_des + e_y*cos(psi)
 	global x_ref, y_ref, psi_ref
-
+	println(s_max, s0)
 	ds = 0.25
 	s_interp = collect(0:ds:s_max)
 	x_interp = zeros(length(s_interp))
@@ -248,7 +249,6 @@ end
 # publishing loop
 function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
-	# println("start pub_loop")
 	global v_f
 	control_rate = 50 	# max 50 Hz
     loop_rate = Rate(control_rate)
