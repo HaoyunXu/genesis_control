@@ -54,6 +54,15 @@ add_message_files(
   FILES
   state_est.msg
 	mpc_path.msg
+  ESRTrackReport.msg
+	ESRValidReport.msg
+	LaneReport.msg
+	MandoObjectReport.msg
+	Multi_targets.msg
+	SteeringReport.msg
+	target.msg
+	VehicleImuReport.msg
+	WheelSpeedReport.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
