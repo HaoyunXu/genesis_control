@@ -9,8 +9,9 @@ from rospy_tutorials.msg import Floats
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
 from cv_bridge import CvBridge, CvBridgeError
-from genesis_control.msg import ESRTrackReport
-from genesis_control.msg import MandoObjectReport
+from genesis_msgs.msg import ESRTrackReport
+from genesis_msgs.msg import MandoObjectReport
+
 
 
 
@@ -90,7 +91,7 @@ def radar_draw_loop():
 	rospy.Subscriber('/mando_radar/esr_track', ESRTrackReport, parseRadar, queue_size = 2)
 	rospy.Subscriber('/mando_camera/object_detection', MandoObjectReport, parseObject, queue_size = 2)
 
-	r = rospy.Rate(10.0)
+	r = rospy.Rate(20.0)
 
 # ---------------------------------------------
 
@@ -192,7 +193,7 @@ def radar_draw_loop():
 
 			mat1.data = list_targets_radar
 			pub_radar.publish(mat1)
-			r.sleep() # NEED THIS ?
+			#r.sleep() # NEED THIS ?
 
 
 
@@ -216,10 +217,16 @@ def radar_draw_loop():
 			for i in range(8):
 
 
-
+				#print 'camera_motionstatus = ', camera_motionstatus[i]	
+				print 'camera_speed = ', camera_speed
+							
 				if abs(camera_x[i]) > 0.1 or abs(camera_y[i]) > 0.1: # Remove all the (0,0)
 
 					if camera_valid[i] > 0 and camera_age > 0:
+
+						
+
+
 						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
 						list_targets_camera.append(-camera_y[i])
 						list_targets_camera.append(camera_x[i])
@@ -239,7 +246,7 @@ def radar_draw_loop():
 
 			mat2.data = list_targets_camera
 			pub_camera.publish(mat2)
-			r.sleep()  # Need this ?
+			#r.sleep()  # Need this ?
 # ---------------------------------------------------------
 
 		#plt.xlim([-20, 20])
@@ -248,7 +255,7 @@ def radar_draw_loop():
 
 		#f.canvas.draw()
 
-		plt.pause(0.001)
+		#plt.pause(0.001)
 
 		r.sleep()
 
