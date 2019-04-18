@@ -105,7 +105,7 @@ def main():
 		#        2.0 = Unknown
 
 		all_targets = []
-		min_distance =  #Min distance between two points to be considered the same points
+		min_distance = 1.0  #Min distance between two points to be considered the same points
 
 		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
 		target_array = Multi_targets()
@@ -116,9 +116,12 @@ def main():
 		global list_cam_speed
 		global list_radar_speed
 		global list_wheel_speed
+		
+		global previous_v_avg
+		previous_v_avg = 0  # Maybe change that if we start with an initial velocity very different from zero
 
 		for i in range(0, len(camera_list_targets_matrix)):        #camera targets loop
-			print 'i = ', i
+			#print 'i = ', i
 
 			close_points = []
 			x_cam     = camera_list_targets_matrix[i][0]
@@ -129,99 +132,98 @@ def main():
 			lane_cam  = camera_list_targets_matrix[i][5]
 
 			close_points = np.append(close_points, [x_cam, y_cam, v_cam])
-			#print 'x_cam = ', x_cam
-			#print 'y_cam = ', y_cam
-			#print ' '
-			print ' '
-			print 'v_cam = ', v_cam # <<<<<<<<<<<<<<<<<<<<<<----------------------------
+			
 
-			for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
-				#print 'j = ', j
+			if lane_cam == 0:
 
+				for j in range(0, len(radar_list_targets_matrix)): #radar targets loop
 
-				x_radar     = radar_list_targets_matrix[j][0]
-				y_radar     = radar_list_targets_matrix[j][1]
-				v_radar     = radar_list_targets_matrix[j][2]  #Speed
-				label_radar = radar_list_targets_matrix[j][3]
+					x_radar     = radar_list_targets_matrix[j][0]
+					y_radar     = radar_list_targets_matrix[j][1]
+					v_radar     = radar_list_targets_matrix[j][2]  #Speed
+					label_radar = radar_list_targets_matrix[j][3]
 
-				#print 'x_radar = ', x_radar
-				#print 'y_radar = ', y_radar
-				distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
-				#print 'distance = ', distance
+					distance = np.sqrt( (x_radar - x_cam)**2 + (y_radar - y_cam)**2 )
 
-				if distance < min_distance:
-					#print 'Fusion !'
-					# I want to plot this:
+					if distance < min_distance:
 
-					close_points = np.append(close_points, [x_radar, y_radar, v_radar])
-					#print 'close_points = ', close_points
+						close_points = np.append(close_points, [x_radar, y_radar, v_radar])
 
-					print 'v_radar = ', v_radar
-					print 'v_cam = ', v_cam
-					print 'wheel_speed = ', wheel_speed
-					print iteration
-					iteration += 1
-
-					list_cam_speed = list_cam_speed + [v_cam]
-					list_radar_speed = list_radar_speed + [v_radar]
-					list_wheel_speed = list_wheel_speed + [wheel_speed]
-
-					plt.plot(list_cam_speed,'b')
-					plt.plot(list_radar_speed,'g')
-					plt.plot(list_wheel_speed,'r')
+						# ---------------
+						# Plots for debugging
+						#list_cam_speed = list_cam_speed + [v_cam]
+						#list_radar_speed = list_radar_speed + [v_radar]
+						#plt.plot(list_cam_speed,'b')
+						#plt.plot(list_radar_speed,'r')
+						#plt.pause(0.001)
 
 
-					plt.pause(0.001) # Do I need this ?
+					elif distance > min_distance:
+						#print 'No Fusion !'
+
+						# We add the label (1.0 = car, 2.0 = unknown)
+						b = np.append(radar_list_targets_matrix[j],2.0)
+
+						all_targets.append(list(b))
+
+						target_far = target()
+						target_far.pos_x    = x_radar
+						target_far.pos_y    = y_radar
+						target_far.speed    = v_radar
+						target_far.category = 2
+						target_far.counter  = j
+
+						target_array.data.append(target_far)
+
+				matrix_close_points = np.reshape(close_points,(len(close_points)/3,3))
+				x_avg = np.mean(matrix_close_points[:,0])
+				y_avg = np.mean(matrix_close_points[:,1])
+				v_avg = np.mean(matrix_close_points[:,2])
+
+				# ---------------------
+				# This is for publishing
+				target_avg = target()
+				target_avg.pos_x    = x_avg
+				target_avg.pos_y    = y_avg
+				target_avg.category = 1
+				target_avg.counter  = i   # Not relevant to put i
+
+				#print 'speed diff = ', abs(v_avg - previous_v_avg)
+
+				# Remove incoherent points
+				if (abs(v_avg - previous_v_avg) < 10):
+					target_avg.speed    = v_avg 
+					previous_v_avg = v_avg;
+				else:
+					target_avg.speedd = previous_v_avg
+					
 
 
-				elif distance > min_distance:
-					#print 'No Fusion !'
 
-					# We add the label (1.0 = car, 2.0 = unknown)
-					b = np.append(radar_list_targets_matrix[j],2.0)
-
-					all_targets.append(list(b))
-
-					target_far = target()
-					target_far.pos_x    = x_radar
-					target_far.pos_y    = y_radar
-					target_far.speed    = v_radar
-					target_far.category = 2
-					target_far.counter  = j
-
-					target_array.data.append(target_far)
-
-			matrix_close_points = np.reshape(close_points,(len(close_points)/3,3))
-			x_avg = np.mean(matrix_close_points[:,0])
-			y_avg = np.mean(matrix_close_points[:,1])
-			v_avg = np.mean(matrix_close_points[:,2])
-
-			# ---------------------
-			# This is for publishing
-			target_avg = target()
-			target_avg.pos_x    = x_avg
-			target_avg.pos_y    = y_avg
-			target_avg.speed    = v_avg
-			target_avg.category = 1
-			target_avg.counter  = i   # Not relevant to put i
-
-			if lane_cam == 0: # Same lane as our car. The cars in the other lane shouldn't appear on the topic for cruise control
 
 				# Put that in the array of detected cars
 				targets_cars.data.append(target_avg)
 
-			# Append the avg point (the points close to car) in the target array
-			target_array.data.append(target_avg)
 
-			# ---------------------
-			# This is for plotting
-			# We average and add the label (1.0 = car)
-			point_average = [x_avg, y_avg, v_avg, 1.0]
-			all_targets.append(point_average)
+				# Append the avg point (the points close to car) in the target array
+				target_array.data.append(target_avg)
 
-			# ---------------------
-			# Publish for ACC
+				# ---------------------
+				# This is for plotting
+				# We average and add the label (1.0 = car)
+				point_average = [x_avg, y_avg, v_avg, 1.0]
+				all_targets.append(point_average)
 
+
+				# --------------------
+				# Debugging plot
+				# NAME IS WRONG BUT WE ACTUALLY PLOT THE SPEED FOR ACC (AVG SPEED)
+				#list_cam_speed = list_cam_speed + [target_avg.speed]
+				#plt.plot(list_cam_speed,'b')
+				#plt.pause(0.001) # Do I need this ?
+				# --------------------
+
+		# Publish for ACC
 		pub_acc.publish(targets_cars)
 		pub_all_targets.publish(target_array)
 
