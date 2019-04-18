@@ -5,10 +5,10 @@ import cv2
 import rospy
 import numpy as np
 import matplotlib.pyplot as plt
-from genesis_control.msg import target
+from genesis_msgs.msg import target
 from std_msgs.msg import Float32MultiArray
-from genesis_control.msg import Multi_targets
-from genesis_control.msg import WheelSpeedReport
+from genesis_msgs.msg import Multi_targets
+from genesis_msgs.msg import WheelSpeedReport
 
 iteration = 1
 list_cam_speed = []
@@ -105,7 +105,7 @@ def main():
 		#        2.0 = Unknown
 
 		all_targets = []
-		min_distance = 3 #Min distance between two points to be considered the same points
+		min_distance =  #Min distance between two points to be considered the same points
 
 		# Create an object of type Multi_targets() -> Will store all the detected targets (of type target)
 		target_array = Multi_targets()
