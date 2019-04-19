@@ -10,6 +10,7 @@ import threading
 import time
 from std_msgs.msg import String
 from std_msgs.msg import UInt8
+from std_msgs.msg import Bool
 
 # begin wxGlade: dependencies
 # end wxGlade
@@ -256,7 +257,7 @@ if __name__ == "__main__":
     rospy.Subscriber("pnlvalue2", UInt8, callback2)
     rospy.Subscriber("pnlvalue3", UInt8, callback3)
     rospy.Subscriber("pnlvalue4", UInt8, callback4)
-    rospy.Subscriber("msgvalue1", UInt8, callback5)
+    rospy.Subscriber("stopcmd", Bool, callback5)
 
     threading.Thread(target = rosloop)
     app = MyApp(0)
