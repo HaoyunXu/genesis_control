@@ -20,8 +20,8 @@ from std_msgs.msg import Bool
 
 # Default values
 int_1 = 1
-str_1 = 'OFF'
-str_2 = 'OFF'
+int_2 = 0
+int_3 = 0
 cont_stat = 0
 left_side = 1
 right_side = 1
@@ -62,10 +62,8 @@ class MyFrame(wx.Frame):
 
     def onTimer(self, evt):
 	global int_1
-        global str_1
-	global str_2
-	self.text_ctrl_4.SetValue(str(str_1))
-	self.text_ctrl_5.SetValue(str(str_2))
+	global int_2
+        global int_3
 
 	#Top Message Window
 	font1 = wx.Font(16, wx.NORMAL, wx.NORMAL, wx.NORMAL)
@@ -81,6 +79,15 @@ class MyFrame(wx.Frame):
 	elif cont_stat == 1:
 	    self.panel_1.SetBackgroundColour(wx.Colour(0,255,0)) #Green
 	
+	#Left Message Window (Car Status)
+	if int_2 == 0:
+	    self.text_ctrl_4.SetValue("OFF")
+	elif int_2 == 1:
+	    self.text_ctrl_4.SetValue("ON")
+
+	#Right Message Window (Controller Status)
+
+
 	#Radar Detection Panel (Front of Car)
 	if front_side == 1:
 	    self.panel_2.SetBackgroundColour(wx.Colour(255,0,0)) #Red
@@ -217,12 +224,12 @@ def rosloop():
     while not rospy.is_shutdown():
 	rate.sleep()
 def callback(msg):  #upper right textbox regarding controller
-    global str_1
-    str_1 = msg.data
+    global int_2
+    int_2 = msg.data
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
 def callback0(msg2): #lower textbox regarding car
-    global str_2 
-    str_2 = msg2.data
+    global int_3 
+    int_3 = msg2.data
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg2.data)
 def callback1(pnl1): #controller status
     global cont_stat
@@ -251,8 +258,8 @@ def callback5(msg1): #Top Textbox for Warnings
    
 if __name__ == "__main__":
     rospy.init_node('button', anonymous = True)
-    rospy.Subscriber("msgvalue", String, callback)
-    rospy.Subscriber("msgvalue2", String, callback0)
+    rospy.Subscriber("msgvalue", UInt8, callback)
+    rospy.Subscriber("msgvalue2", UInt8, callback0)
     rospy.Subscriber("pnlvalue1", UInt8, callback1)
     rospy.Subscriber("pnlvalue2", UInt8, callback2)
     rospy.Subscriber("pnlvalue3", UInt8, callback3)
