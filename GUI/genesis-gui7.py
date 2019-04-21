@@ -8,7 +8,7 @@ import wx
 import rospy
 import threading
 import time
-from std_msgs.msg import String
+
 from std_msgs.msg import UInt8
 from std_msgs.msg import Bool
 
@@ -22,7 +22,7 @@ from std_msgs.msg import Bool
 int_1 = 1
 int_2 = 0
 int_3 = 0
-cont_stat = 0
+cont_stat = 1
 left_side = 1
 right_side = 1
 front_side = 1
@@ -70,6 +70,7 @@ class MyFrame(wx.Frame):
 	self.text_ctrl_1.SetFont(font1)
 	if int_1 == 0:
 	    self.text_ctrl_1.SetValue("NO ERRORS")
+	    self.text_ctrl_1.SetBackgroundColour((0,0,0))
 	elif int_1 == 1:
 	    self.text_ctrl_1.SetValue("CONTROL FAILED: TAKE OVER STEERING")
 	    self.text_ctrl_1.SetBackgroundColour((255,0,0))
@@ -86,6 +87,12 @@ class MyFrame(wx.Frame):
 	    self.text_ctrl_4.SetValue("ON")
 
 	#Right Message Window (Controller Status)
+	if int_3 == 0:
+	    self.text_ctrl_5.SetValue("OFF")
+	elif int_3 == 1:
+	    self.text_ctrl_5.SetValue("MPC")
+	elif int_3 == 2:
+	    self.text_ctrl_5.SetValue("MPC & Cruise Control")
 
 
 	#Radar Detection Panel (Front of Car)
