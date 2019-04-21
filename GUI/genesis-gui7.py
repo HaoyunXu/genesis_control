@@ -22,7 +22,7 @@ from std_msgs.msg import Bool
 int_1 = 1
 int_2 = 0
 int_3 = 0
-cont_stat = 1
+cont_stat = 0
 left_side = 1
 right_side = 1
 front_side = 1
@@ -41,8 +41,8 @@ class MyFrame(wx.Frame):
         #self.text_ctrl_2 = wx.TextCtrl(self, wx.ID_ANY, "")
         #self.text_ctrl_3 = wx.TextCtrl(self, wx.ID_ANY, "")
         self.panel_1 = wx.Panel(self, wx.ID_ANY)
-        self.text_ctrl_5 = wx.TextCtrl(self, wx.ID_ANY, "")
-        self.text_ctrl_4 = wx.TextCtrl(self, wx.ID_ANY, "")
+        self.text_ctrl_5 = wx.TextCtrl(self, wx.ID_ANY, "", size = (100,40))
+        self.text_ctrl_4 = wx.TextCtrl(self, wx.ID_ANY, "", size = (400,40))
         self.button_1 = wx.Button(self, wx.ID_ANY, "CONTINUE")
 	self.button_1.Bind(wx.EVT_BUTTON, self.onClick)
         self.panel_3 = wx.Panel(self, wx.ID_ANY)
@@ -82,17 +82,17 @@ class MyFrame(wx.Frame):
 	
 	#Left Message Window (Car Status)
 	if int_2 == 0:
-	    self.text_ctrl_4.SetValue("OFF")
+	    self.text_ctrl_5.SetValue("OFF")
 	elif int_2 == 1:
-	    self.text_ctrl_4.SetValue("ON")
+	    self.text_ctrl_5.SetValue("ON")
 
 	#Right Message Window (Controller Status)
 	if int_3 == 0:
-	    self.text_ctrl_5.SetValue("OFF")
+	    self.text_ctrl_4.SetValue("OFF")
 	elif int_3 == 1:
-	    self.text_ctrl_5.SetValue("MPC")
+	    self.text_ctrl_4.SetValue("MPC")
 	elif int_3 == 2:
-	    self.text_ctrl_5.SetValue("MPC & Cruise Control")
+	    self.text_ctrl_4.SetValue("MPC & Cruise Control")
 
 
 	#Radar Detection Panel (Front of Car)
@@ -132,7 +132,7 @@ class MyFrame(wx.Frame):
         self.SetTitle("Genesis GUI")
         self.panel_1.SetBackgroundColour(wx.Colour(0, 255, 127))
         self.text_ctrl_4.SetMinSize((250, 30))
-        self.button_1.SetMinSize((150, 150))
+        self.button_1.SetMinSize((200, 200))
         self.button_1.SetBackgroundColour(wx.Colour(42, 255, 255))
         self.button_1.SetFont(wx.Font(16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, 0, ""))
         self.panel_3.SetBackgroundColour(wx.Colour(0, 255, 127))
@@ -200,7 +200,7 @@ class MyFrame(wx.Frame):
         grid_sizer_12.Add((0, 0), 0, 0, 0)
         grid_sizer_12.Add(self.panel_2, 1, wx.EXPAND, 0)
         grid_sizer_8.Add(grid_sizer_12, 1, wx.EXPAND, 0)
-        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("/home/me131/catkin_ws/genesis control/blackcar.png", wx.BITMAP_TYPE_ANY))
+        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("/home/me131/catkin_ws/genesis_control/GUI/blackcar.png", wx.BITMAP_TYPE_ANY))
         grid_sizer_8.Add(bitmap_1, 0, wx.ALIGN_CENTER, 0)
         sizer_1.Add(grid_sizer_8, 1, wx.EXPAND, 0)
         grid_sizer_6.Add(sizer_1, 1, wx.EXPAND, 0)
