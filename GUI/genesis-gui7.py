@@ -19,7 +19,7 @@ from std_msgs.msg import Bool
 # end wxGlade
 
 # Default values
-int_1 = 1
+int_1 = 0
 int_2 = 0
 int_3 = 0
 cont_stat = 0
@@ -70,7 +70,7 @@ class MyFrame(wx.Frame):
 	self.text_ctrl_1.SetFont(font1)
 	if int_1 == 0:
 	    self.text_ctrl_1.SetValue("NO ERRORS")
-	    self.text_ctrl_1.SetBackgroundColour((0,0,0))
+	    self.text_ctrl_1.SetBackgroundColour((255,255,255))
 	elif int_1 == 1:
 	    self.text_ctrl_1.SetValue("CONTROL FAILED: TAKE OVER STEERING")
 	    self.text_ctrl_1.SetBackgroundColour((255,0,0))
@@ -81,12 +81,14 @@ class MyFrame(wx.Frame):
 	    self.panel_1.SetBackgroundColour(wx.Colour(0,255,0)) #Green
 	
 	#Left Message Window (Car Status)
+	self.text_ctrl_5.SetFont(font1)
 	if int_2 == 0:
 	    self.text_ctrl_5.SetValue("OFF")
 	elif int_2 == 1:
 	    self.text_ctrl_5.SetValue("ON")
 
 	#Right Message Window (Controller Status)
+	self.text_ctrl_4.SetFont(font1)
 	if int_3 == 0:
 	    self.text_ctrl_4.SetValue("OFF")
 	elif int_3 == 1:
