@@ -135,8 +135,8 @@ def radar_draw_loop():
 
 
 # ---------------------------------------------------------
-	#f, (ax1,ax2) = plt.subplots(2)
-	#plt.ion()
+	f, (ax1,ax2) = plt.subplots(2)
+	plt.ion()
 # ---------------------------------------------------------
 
 	global img, radar, objects
@@ -150,9 +150,9 @@ def radar_draw_loop():
 			continue
 
 		img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_AREA)
-		#ax1.imshow(img)
+		ax1.imshow(img)
 
-		#ax2.clear()
+		ax2.clear()
 
 
 # ------------------------------------------------------
@@ -180,7 +180,7 @@ def radar_draw_loop():
 
 					if radar_status[i] > 0:
 						if abs(radar_x) < 6 and abs(radar_y) < 40:
-							#ax2.plot(radar_x, radar_y, 'rx', markersize=8)
+							ax2.plot(radar_x, radar_y, 'rx', markersize=8)
 							#plt.text(radar_x+2, radar_y + 2, radar_vel[i], fontsize=10)
 							#plt.text(radar_x+2, radar_y + 5, radar_status[i], fontsize=10)
 							# --------------------------------
@@ -217,17 +217,17 @@ def radar_draw_loop():
 			for i in range(8):
 
 
-				#print 'camera_motionstatus = ', camera_motionstatus[i]	
+				#print 'camera_motionstatus = ', camera_motionstatus[i]
 
-							
+
 				if abs(camera_x[i]) > 0.1 or abs(camera_y[i]) > 0.1: # Remove all the (0,0)
 
 					if camera_valid[i] > 0 and camera_age > 0:
 
-						
 
 
-						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
+
+						ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
 						list_targets_camera.append(-camera_y[i])
 						list_targets_camera.append(camera_x[i])
 						list_targets_camera.append(camera_speed[i]) # <- Faulty speed
@@ -238,7 +238,7 @@ def radar_draw_loop():
 						print 'camera_speed = ', camera_speed[i]
 
 					else:
-						#ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
+						ax2.plot(-camera_y[i], camera_x[i], '.', markersize=8)
 						list_targets_camera.append(-camera_y[i])
 						list_targets_camera.append(camera_x[i])
 						list_targets_camera.append(camera_speed[i]) # <- Faulty speed
@@ -251,13 +251,13 @@ def radar_draw_loop():
 			#r.sleep()  # Need this ?
 # ---------------------------------------------------------
 
-		#plt.xlim([-20, 20])
-		#plt.ylim([-1, 40])
-		#plt.grid()
+		plt.xlim([-12, 12])
+		plt.ylim([-1, 40])
+		plt.grid()
 
-		#f.canvas.draw()
+		f.canvas.draw()
 
-		#plt.pause(0.001)
+		plt.pause(0.001)
 
 		r.sleep()
 
