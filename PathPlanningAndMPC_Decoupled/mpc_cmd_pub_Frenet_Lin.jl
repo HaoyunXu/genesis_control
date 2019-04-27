@@ -111,7 +111,6 @@ stop_index = 1
 s_stop = s_stop_array[stop_index]
 take_over_flag = false
 
-
 function v_acc_callback(msg::Float32MultiArray)
 	grt[:_update_acc](msg.data)
 end
@@ -142,7 +141,7 @@ function go_cmd_callback(msg::BoolMsg)
 	#previously stopped because of reaching the end of traj
 	if command_stop && msg.data && !take_over_flag
 		command_stop = false
-		v_f = 3.0
+		v_f = 5.0
 		stop_index=stop_index+1
 		if stop_index>length(s_stop_array)
 			stop_index = length(s_stop_array)
@@ -153,7 +152,7 @@ function go_cmd_callback(msg::BoolMsg)
 	# stopped because human take over
 	elseif take_over_flag && msg.data && command_stop
 		take_over_flag = false
-		v_f = 3.0
+		v_f = 5.0
 		command_stop = false
 	end
 end
@@ -218,7 +217,6 @@ function compRefXYfromCurv(s0, s_max, k_coeff, hor)
 	# alternatively, could just use kin. model to forward integrate in time
 	# X = X_des - e_y * sin(psi), Y = Y_des + e_y*cos(psi)
 	global x_ref, y_ref, psi_ref
-	println(s_max, s0)
 	ds = 0.25
 	s_interp = collect(0:ds:s_max)
 	x_interp = zeros(length(s_interp))
@@ -277,7 +275,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 		if ! track_with_time  #Currently using
 			# velocity tracking based waypoints
-			s_ref, K_coeff, traj_end, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)  ####editted by Jiakai
+			s_ref, K_coeff, traj_end, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)
 
 			#ideally this is not used, since we have hardcorded stop position
 			if traj_end == true
@@ -315,7 +313,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 	    ref_lock = false
 
-
+		println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",command_stop,"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 		if command_stop == false
 			# disable garbage collection (makes optimization code run faster)
 			gc_enable(false) # enable later on
@@ -332,13 +330,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			rostm = get_rostime()
 			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
 
-			# if the speed is too slow and is not just started, skip lat MPC and apply 0 on steering angle
-			# if v_curr < 0.1
-			# 	df_opt = 0.0;
-			# 	solv_time_lat_gurobi1 = 0.0
-			# 	log_str_lat = @sprintf("Speed is too SLOW: %.3f, skip lat MPC and apply 0.0 steer", v_curr)
-		    # 	loginfo(log_str_lat)
-			# else
+
 			df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
 			solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
 

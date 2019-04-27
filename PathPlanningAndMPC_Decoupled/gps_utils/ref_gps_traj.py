@@ -50,6 +50,10 @@ class GPSRefTrajectory():
 		self.traj_horizon = traj_horizon	# horizon (# time steps ahead) for trajectory reference
 		self.traj_dt = traj_dt				# time discretization (s) for each time step in horizon
 		self.acc = None						# adaptive cruise control velocities, input from acc function
+		self.hold = 0                       # Amount of time that the same acc has been used. To account for the different
+											# frequencies between MPC and radar output
+
+
 
 		tms  = []		# ROS Timestamps (s)
 		lats = []		# Latitude (decimal degrees)
@@ -127,13 +131,22 @@ class GPSRefTrajectory():
 
 			#a gradual and linear change on velocity
 			for i in range(1,17):
-				v_track[i] = v_track[i-1] + (v_target - v_current)/16.0
+				if v_track[i-1] + self.traj_dt*0.5 > v_target:
+					v_track[i] = v_target
+				else:
+					v_track[i] = v_track[i-1] + self.traj_dt*0.5
+
+
+			# update waiting time
+			self.hold = self.hold + 0.02;
+			if self.hold > 0.06:
+				self.acc = None
 
 			#Use the smaller velocity between adaptive cruise control and refence tracking
 			if self.acc is not None and self.acc.size >2:
+				print("compared and hold is :",self.hold)
 				v_track = np.minimum(v_track,self.acc)
-			# print("v_track:",v_track)
-
+			print(v_track)
 			return self.__waypoints_using_vtarget_frenet(closest_traj_ind, v_track, yaw_init,X_init, Y_init)
 
 		else:
@@ -233,7 +246,8 @@ class GPSRefTrajectory():
 		stop_cmd = False
 		if self.x_interp[-1] == self.trajectory[-1,4] and self.y_interp[-1] == self.trajectory[-1,5]:
 			stop_cmd = True
-
+		if v_target[8] < 0.5 and v_target[1] < v_target[0]:  # Hardcode for acc to work
+			stop_cmd = True
 		# determine s_curr, epsi_curr
 		s_curr = self.trajectory[closest_traj_ind, 6]	# determine current progress along s
 		epsi_curr = yaw_init - self.trajectory[closest_traj_ind,3]	# e_psi = psi - \theta(s), where psi is vehicle-yaw and theta(s) is curve-yaw
@@ -272,5 +286,5 @@ class GPSRefTrajectory():
 
 
 	def _update_acc(self, newAcc):
-		print("inside update function",newAcc)
 		self.acc = newAcc
+		self.hold = 0

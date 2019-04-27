@@ -23,6 +23,9 @@ v_ref = None
 human_take_over = False
 
 
+# 1: published v_ref in previous iteration
+# 2: did not publish
+prev_state = 2
 
 def state_est_callback(msg):
 	global ve
@@ -33,7 +36,7 @@ def v_acc_callback(msg):
 	if not msg.data:
 		return
 
-	global valid, v_ref, human_take_over,ve
+	global v_acc_pub, human_take_over_pub,ve, prev_state
 
 
 	#unpack
@@ -54,66 +57,84 @@ def v_acc_callback(msg):
 	deacc_max = -5.0
 	# The max deacceleration
 	d_brake = abs((ve**2-vf**2)/(2*deacc_max)) # The braking distance for max deacceleration
-	d_safe = d_brake + abs(ve-vf)*1 + 0.5   # braking distance + buffer (for one second reaction) + even stationary we want 0.5m distance
+	d_safe = d_brake + abs(ve-vf)*1 + 3   # braking distance + buffer (for one second reaction) + even stationary we want 3m distance
 
 
 
-	# if vf > ve acc not enabled
 	# if vf < ve
-	# 	if within safety distance
-	#		human take over
-	#	else
+	#	if outside safety distance
 	#		calculate braking
-	#		if braking is too smalle
-	#			brake later, acc not enabled for now
-	#		else
+	#		if braking is significant
 	#			calculate v_ref, enable acc
+	#		else: when braking is small
+	#			brake later, acc not enabled for now
+	# 	else: within safety distance
+	#		human take over
+	# if vf > ve acc not enabled
+
+	buffer = 0.3
 
 
 	if (vf < ve):
 		v_ref[0] = ve
 
+
 		if d >= d_safe:
 			distance_to_brake = d-d_safe
 			time = distance_to_brake/(v_relative/2+ve)
 			acc_braking = v_relative/time
-
-			if acc_braking < -0.5:
+			print("##############################",acc_braking,"###############################")
+			if (prev_state==1 and acc_braking < -0.65+buffer) or (prev_state!=1 and acc_braking < -0.65) : #if braking is significant, brake
+				print("*******************************publishing*******************************")
 				for i in range(1,N):
 					res = v_ref[i-1] + dt*acc_braking  # Do linear deacceleration to be the front car velocity
 					if (res>0):
 						v_ref[i] = res
 					else:
 						v_ref[i] = 0
-				valid = True
+				v_acc_pub.publish(Float32MultiArray(data=v_ref))
+				prev_state = 1
 
-		else: # Send message to driver take-over
-			human_take_over = True
+			elif d<=d_brake*3:
+				print("++++++++++++++++++++++++++++++++remain constant+++++++++++++++++++++++++++++++++++++")
+				v_ref = [ve]*17
+				v_acc_pub.publish(Float32MultiArray(data=v_ref))
+
+			else:  #if braking is too small, brake later
+				print("-----------------------------not publishing--------------------------------------")
+				v_acc_pub.publish(Float32MultiArray(data=None))
+				prev_state = 2
+
+		elif d<d_brake: # if inside braking distance, send message to driver take-over
+			human_take_over_pub.publish(BoolMsg(data=True))
+	else: # when vf > ve, don't do anything
+		v_acc_pub.publish(Float32MultiArray(data=None))
 
 
-
-def pub_loop(v_acc_pub_obj, human_take_over_pub_obj):
-	global valid, v_ref, human_take_over
-	rate = rospy.Rate(20) # 10hz
-	while not rospy.is_shutdown():
-		if human_take_over:
-			human_take_over_pub_obj.publish(BoolMsg(data=True))
-			human_take_over = False
-		elif valid:
-			v_acc_pub_obj.publish(Float32MultiArray(data=v_ref))
-		else:
-			v_acc_pub_obj.publish(Float32MultiArray(data=None))
-		valid = False
-		rate.sleep()
+# def pub_loop(v_acc_pub_obj, human_take_over_pub_obj):
+# 	global valid, v_ref, human_take_over
+# 	rate = rospy.Rate(20)
+# 	while not rospy.is_shutdown():
+# 		if human_take_over:
+# 			human_take_over_pub_obj.publish(BoolMsg(data=True))
+# 			human_take_over = False
+# 		elif valid:
+# 			v_acc_pub_obj.publish(Float32MultiArray(data=v_ref))
+# 		else:
+# 			v_acc_pub_obj.publish(Float32MultiArray(data=None))
+# 		valid = False
+# 		rate.sleep()
 
 
 def start_node():
+	global v_acc_pub, human_take_over_pub
 	rospy.init_node('v_acc_node')
 	rospy.Subscriber('radar_targets_acc',Multi_targets, v_acc_callback, queue_size=2)
 	rospy.Subscriber('state_est', state_est, state_est_callback, queue_size=2)
 	v_acc_pub = rospy.Publisher("v_acc", Float32MultiArray, queue_size=2)
 	human_take_over_pub = rospy.Publisher("takeover", BoolMsg, queue_size=2)
-	pub_loop(v_acc_pub,human_take_over_pub)
+	rospy.spin()
+
 
 
 if __name__=='__main__':
