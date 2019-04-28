@@ -51,14 +51,6 @@ def v_acc_callback(msg):
 
 	d = msg.data[0].pos_y         # relative distance
 
-	N = 17
-	dt = 0.2 # dt for mpc
-	v_ref = ve*np.ones(N)
-	deacc_max = -5.0
-	# The max deacceleration
-	d_brake = abs((ve**2-vf**2)/(2*deacc_max)) # The braking distance for max deacceleration
-	d_safe = d_brake + abs(ve-vf)*1 + 3   # braking distance + buffer (for one second reaction) + even stationary we want 3m distance
-
 
 
 	# if vf < ve
@@ -74,9 +66,24 @@ def v_acc_callback(msg):
 
 	buffer = 0.3
 
+	if abs(v_relative)<0.1 and d<10:
+		v_ref = [ve]*17
+		v_acc_pub.publish(Float32MultiArray(data=v_ref))
 
-	if (vf < ve):
+
+	elif (vf < ve):
+		N = 17
+		v_ref = ve*np.ones(N)
 		v_ref[0] = ve
+
+
+
+		dt = 0.1 # dt for mpc
+
+		deacc_max = -5.0
+		# The max deacceleration
+		d_brake = abs((ve**2-vf**2)/(2*deacc_max)) # The braking distance for max deacceleration
+		d_safe = d_brake + abs(ve-vf)*1 + 3   # braking distance + buffer (for one second reaction) + even stationary we want 3m distance
 
 
 		if d >= d_safe:
@@ -84,7 +91,7 @@ def v_acc_callback(msg):
 			time = distance_to_brake/(v_relative/2+ve)
 			acc_braking = v_relative/time
 			print("##############################",acc_braking,"###############################")
-			if (prev_state==1 and acc_braking < -0.65+buffer) or (prev_state!=1 and acc_braking < -0.65) : #if braking is significant, brake
+			if (prev_state==1 and acc_braking < -0.65+buffer) or (prev_state!=1 and acc_braking < -0.65): #if braking is significant, brake
 				print("*******************************publishing*******************************")
 				for i in range(1,N):
 					res = v_ref[i-1] + dt*acc_braking  # Do linear deacceleration to be the front car velocity
@@ -95,7 +102,7 @@ def v_acc_callback(msg):
 				v_acc_pub.publish(Float32MultiArray(data=v_ref))
 				prev_state = 1
 
-			elif d<=d_brake*3:
+			elif d<=d_safe*2:
 				print("++++++++++++++++++++++++++++++++remain constant+++++++++++++++++++++++++++++++++++++")
 				v_ref = [ve]*17
 				v_acc_pub.publish(Float32MultiArray(data=v_ref))
@@ -105,7 +112,7 @@ def v_acc_callback(msg):
 				v_acc_pub.publish(Float32MultiArray(data=None))
 				prev_state = 2
 
-		elif d<d_brake: # if inside braking distance, send message to driver take-over
+		elif d<d_safe: # if inside braking distance, send message to driver take-over
 			human_take_over_pub.publish(BoolMsg(data=True))
 	else: # when vf > ve, don't do anything
 		v_acc_pub.publish(Float32MultiArray(data=None))

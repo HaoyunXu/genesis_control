@@ -275,12 +275,7 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 		if ! track_with_time  #Currently using
 			# velocity tracking based waypoints
-			s_ref, K_coeff, traj_end, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)
-
-			#ideally this is not used, since we have hardcorded stop position
-			if traj_end == true
-				command_stop = true
-			end
+			s_ref, K_coeff, command_stop, s_curr, ey_curr, epsi_curr, x_ref, y_ref, psi_ref, v_ref = grt[:get_waypoints_frenet](x_curr, y_curr, psi_curr,v_f,v_curr)
 
 
 			brake_dist = v_curr^2/2

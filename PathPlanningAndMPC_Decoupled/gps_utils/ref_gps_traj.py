@@ -246,7 +246,8 @@ class GPSRefTrajectory():
 		stop_cmd = False
 		if self.x_interp[-1] == self.trajectory[-1,4] and self.y_interp[-1] == self.trajectory[-1,5]:
 			stop_cmd = True
-		if v_target[8] < 0.5 and v_target[1] < v_target[0]:  # Hardcode for acc to work
+		if (v_target[8] < 0.5 and v_target[1] < v_target[0]) or v_target[11]<0.5:  # Hardcode for acc to work
+			print("==============================triggered=================================")
 			stop_cmd = True
 		# determine s_curr, epsi_curr
 		s_curr = self.trajectory[closest_traj_ind, 6]	# determine current progress along s
