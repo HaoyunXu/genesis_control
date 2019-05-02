@@ -308,7 +308,6 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 
 	    ref_lock = false
 
-		println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",command_stop,"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 		if command_stop == false
 			# disable garbage collection (makes optimization code run faster)
 			gc_enable(false) # enable later on
@@ -319,8 +318,8 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			solv_time_long_gurobi1_all[it_num+1] = solv_time_long_gurobi1
 			a_opt = a_opt_gurobi
 
-			# log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Velocity: %.3f, Reference velocity: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1,v_curr,v_f)
-			# loginfo(log_str_long_Gurobi)
+			log_str_long_Gurobi = @sprintf("Solve Status Long. Gurobi.: %s, Acc: %.3f, SolvTimeLong Gurobi:  %.3f, Velocity: %.3f, Reference velocity: %.3f", is_opt_long,  a_opt_gurobi, solv_time_long_gurobi1,v_curr,v_f)
+			loginfo(log_str_long_Gurobi)
 
 			rostm = get_rostime()
 			tm_secs = rostm.secs + 1e-9 * rostm.nsecs
@@ -329,8 +328,8 @@ function pub_loop(acc_pub_obj, steer_pub_obj, mpc_path_pub_obj)
 			df_opt_gurobi, df_pred_gurobi, ey_pred_gurobi, epsi_pred_gurobi, solv_time_lat_gurobi1, is_opt_lat_gurobi = kmpcLinLatGurobi.solve_gurobi(ey_curr, epsi_curr, df_opt, s_pred_gurobi, v_pred_gurobi, K_coeff)
 			solv_time_lat_gurobi1_all[it_num+1] = solv_time_lat_gurobi1
 
-			# log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
-	    	# loginfo(log_str_lat)
+			log_str_lat = @sprintf("Solve Status Lat. Gurobi: %s, SA: %.3f, SolvTimeLat:  %.3f", is_opt_lat_gurobi, df_opt_gurobi, solv_time_lat_gurobi1)
+	    	loginfo(log_str_lat)
 
 			df_opt = df_opt_gurobi
 			# end

@@ -176,13 +176,9 @@ def parseBoxes(data):
 	filter_boxes = BoundingBoxArray()
 	data_ped = BoundingBoxArray()
 	data_car = BoundingBoxArray()
-	data_follow = BoundingBoxArray()
+	data_follow = BoundingBoxArray()  # What is that ?
 
-	#####
-	pre_box =  BoundingBoxArray()
-	pre2_box =  BoundingBoxArray()
-	pre3_box =  BoundingBoxArray()
-	#####pre2_box  =
+	previous_targets = BoundingBoxArray()	#WE NEED TO INITIALIZE IT
 
 
 	data_ped.header = data.header
@@ -191,9 +187,29 @@ def parseBoxes(data):
 	filter_boxes.header = data.header
 	lidar_array = Multi_targets()
 
-
+	data_copy = data # We do that to be able to modify time stamp. Does it work ?
+#Remove flickering loop
 
 	for i in range(len(data.boxes)):
+
+		x = data_copy.boxes[i].pose.position.x
+		y = data_copy.boxes[i].pose.position.y
+
+		for j in range(len(previous_targets)):
+			x_previous = previous_targets.boxes[j].pose.position.x
+			y_previous = previous_targets.boxes[j].pose.position.y
+
+			distance = math.sqrt( (x - x_previous)**2 +  (y - y_previous)**2 )
+
+			# WE CAN ALSO COMPARE THE BOX SIZE
+
+			if distance < 0.25:
+				 = data_copy.boxes[i].header.stamp.secs
+
+
+
+
+for i in range(len(data.boxes)):
 		lidar_target = target()
 		x = data.boxes[i].pose.position.x
 		y = data.boxes[i].pose.position.y
@@ -203,59 +219,84 @@ def parseBoxes(data):
 		lidar_target.pos_x = x
 		lidar_target.pos_y = y
 
+		print data.boxes[i]
+
+
+		# If the target is in front of the car
 		if (y<50 and y>0) and (x<2.5 and x>-2.5):
 			data_follow.boxes.append(data.boxes[i])
+
+		# If the target is in front of the car (or slightly behind)
 		if (y<50 and y>-10) and (x<8 and x>-12):
 			height = data.boxes[i].dimensions.z
 			length = data.boxes[i].dimensions.x
 			width = data.boxes[i].dimensions.y
-			# Pedstrian
+
+			# It's a Pedestrian
 			if (height < 1.8 and height > 0.5) and (length < 1.5 and length > 0) and (width < 1.5 and width > 0):
 				data_ped.boxes.append(data.boxes[i])
 				# lidar_target.category = 0
 				# lidar_target.counter = .1
-			# Vehicle
+
+			# It's a Vehicle
 			elif (height < 5 and height > 0.5) and (length < 10 and length > 0) and (width < 10 and width > 0):
-				####
-					for j in range(15)
-						# REMOVE
-						if abs(pre3_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) <= 0.5 and
-							abs(pre3_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) <= 0.5 and
-							abs(pre3_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) <= 0.25 and
-							abs(pre3_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) <= 0.25 and
-							abs(pre3_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) <= 0.25 and
 
-							abs(pre2_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) >= 0.5 and
-							abs(pre2_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) >= 0.5 and
-							abs(pre2_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) >= 0.25 and
-							abs(pre2_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) >= 0.25 and
-							abs(pre2_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) >= 0.25 and
+		# If the target is in front of the car
+		if (y<50 and y>0) and (x<2.5 and x>-2.5):
+			data_follow.boxes.append(data.boxes[i])
 
-							abs(pre_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) >= 0.5 and
-							abs(pre_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) >= 0.5 and
-							abs(pre_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) >= 0.25 and
-							abs(pre_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) >= 0.25 and
-							abs(pre_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) >= 0.25
+		# If the target is in front of the car (or slightly behind)
+		if (y<50 and y>-10) and (x<8 and x>-12):
+			height = data.boxes[i].dimensions.zBoundingBoxArray
+			length = data.boxes[i].dimensions.x
+			width = data.boxes[i].dimensions.y
 
-							data_car.boxes.pop(i) # IS THAT CORRECT
-						# APPEND
-							elif abs(pre_box.boxes[j].pose.position.x - data.boxes[i].pose.position.x) >= 0.5 and
-								abs(pre_box.boxes[j].pose.position.y - data.boxes[i].pose.position.y) >= 0.5 and
-								abs(pre_box.boxes[j].dimensions.z - data.boxes[i].dimensions.z) >= 0.25 and
-								abs(pre_box.boxes[j].dimensions.y - data.boxes[i].dimensions.y) >= 0.25 and
-								abs(pre_box.boxes[j].dimensions.x - data.boxes[i].dimensions.x) >= 0.25
-				####
+			# It's a Pedestrian
+			if (height < 1.8 and height > 0.5) and (length < 1.5 and length > 0) and (width < 1.5 and width > 0):
+				data_ped.boxes.append(data.boxes[i])
+				# lidar_target.category = 0
+				# lidar_target.counter = .1
+
+			# It's a Vehicle2
+			elif (height < 5 and height > 0.5) and (length < 10 and length > 0) and (width < 10 and width > 0):
+
 
 								data_car.boxes.append(data.boxes[i])
 				# lidar_target.category = 1
 				# lidar_target.counter = .1
-			lidar_array.data.append(lidar_target)
-			filter_boxes.boxes.append(data.boxes[i])
+			lidar_array.datafor i in range(len(data.boxes)):
+		lidar_target = target()
+		x = data.boxes[i].pose.position.x
+		y = data.boxes[i].pose.position.y
+		height = data.boxes[i].dimensions.z
+		length = data.boxes[i].dimensions.x
+		width = data.boxes[i].dimensions.y
+		lidar_target.pos_x = x
+		lidar_target.pos_y = y
 
-	####
-		pre3_box = pre2_box
-		pre2_box = pre_box
-		pre_box  = data.boxes
+		print data.boxes[i]
+
+
+		# If the target is in front of the car
+		if (y<50 and y>0) and (x<2.5 and x>-2.5):
+			data_follow.boxes.append(data.boxes[i])
+
+		# If the target is in front of the car (or slightly behind)
+		if (y<50 and y>-10) and (x<8 and x>-12):
+			height = data.boxes[i].dimensions.z
+			length = data.boxes[i].dimensions.x
+			width = data.boxes[i].dimensions.y
+
+			# It's a Pedestrian
+			if (height < 1.8 and height > 0.5) and (length < 1.5 and length > 0) and (width < 1.5 and width > 0):
+				data_ped.boxes.append(data.boxes[i])
+				# lidar_target.category = 0
+				# lidar_target.counter = .1
+
+			# It's a Vehicle
+			elif (height < 5 and height > 0.5) and (length < 10 and length > 0) and (width < 10 and width > 0):
+.append(lidar_target)
+			filter_boxes.boxes.append(data.boxes[i])
 
 
 

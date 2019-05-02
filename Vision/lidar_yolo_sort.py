@@ -303,7 +303,7 @@ def main_loop():
 	# radar lead car subscriber
 	rospy.Subscriber('/radar_targets_acc', Multi_targets, LeadCarUpdate, queue_size = 2)
 
-	r = rospy.Rate(10.0)
+	r = rospy.Rate(20.0)
 	global img, personYolo_bb, carYolo_bb, img_tm, img_lock, yolo_person_time, yolo_car_time
 	while not rospy.is_shutdown():
 		img_local = None

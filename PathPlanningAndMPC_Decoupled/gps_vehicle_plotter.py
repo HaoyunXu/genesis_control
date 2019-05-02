@@ -153,7 +153,6 @@ class PlotGPSTrajectory():
 
 			# self.ax_zoom.set_xlim(self.x_vehicle - self.window, self.x_vehicle + self.window)
 			# self.ax_zoom.set_ylim(self.y_vehicle - self.window, self.y_vehicle + self.window)
-
 			self.f.canvas.draw()
 			plt.pause(0.001)
 			r.sleep()

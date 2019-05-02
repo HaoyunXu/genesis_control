@@ -8,6 +8,7 @@ from std_msgs.msg import Bool as BoolMsg
 from genesis_control.msg import state_est
 from genesis_control.msg import Multi_targets
 from genesis_control.msg import target
+import matplotlib.pyplot as plt
 
 #initial condition same as in rfs.yaml
 x_curr = -108
@@ -47,6 +48,7 @@ def main_loop(pub):
 
 		pub.publish(acc)
 		rate.sleep()
+		plt.plot(-133.409,-368.668,'go')
 
 def start_node():
 	global pub

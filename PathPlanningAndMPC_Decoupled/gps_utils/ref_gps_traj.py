@@ -144,9 +144,7 @@ class GPSRefTrajectory():
 
 			#Use the smaller velocity between adaptive cruise control and refence tracking
 			if self.acc is not None and self.acc.size >2:
-				print("compared and hold is :",self.hold)
 				v_track = np.minimum(v_track,self.acc)
-			print(v_track)
 			return self.__waypoints_using_vtarget_frenet(closest_traj_ind, v_track, yaw_init,X_init, Y_init)
 
 		else:

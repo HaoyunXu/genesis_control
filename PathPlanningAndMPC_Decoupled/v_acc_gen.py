@@ -80,7 +80,7 @@ def v_acc_callback(msg):
 
 		dt = 0.1 # dt for mpc
 
-		deacc_max = -5.0
+		deacc_max = -2.0
 		# The max deacceleration
 		d_brake = abs((ve**2-vf**2)/(2*deacc_max)) # The braking distance for max deacceleration
 		d_safe = d_brake + abs(ve-vf)*1 + 3   # braking distance + buffer (for one second reaction) + even stationary we want 3m distance
@@ -90,9 +90,7 @@ def v_acc_callback(msg):
 			distance_to_brake = d-d_safe
 			time = distance_to_brake/(v_relative/2+ve)
 			acc_braking = v_relative/time
-			print("##############################",acc_braking,"###############################")
 			if (prev_state==1 and acc_braking < -0.65+buffer) or (prev_state!=1 and acc_braking < -0.65): #if braking is significant, brake
-				print("*******************************publishing*******************************")
 				for i in range(1,N):
 					res = v_ref[i-1] + dt*acc_braking  # Do linear deacceleration to be the front car velocity
 					if (res>0):
@@ -103,12 +101,10 @@ def v_acc_callback(msg):
 				prev_state = 1
 
 			elif d<=d_safe*2:
-				print("++++++++++++++++++++++++++++++++remain constant+++++++++++++++++++++++++++++++++++++")
 				v_ref = [ve]*17
 				v_acc_pub.publish(Float32MultiArray(data=v_ref))
 
 			else:  #if braking is too small, brake later
-				print("-----------------------------not publishing--------------------------------------")
 				v_acc_pub.publish(Float32MultiArray(data=None))
 				prev_state = 2
 
