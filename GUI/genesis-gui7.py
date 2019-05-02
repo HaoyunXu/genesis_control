@@ -49,9 +49,9 @@ class MyFrame(wx.Frame):
         self.panel_2 = wx.Panel(self, wx.ID_ANY)
         self.panel_4 = wx.Panel(self, wx.ID_ANY)
 	self.pub = rospy.Publisher('buttonvalue',UInt8, queue_size = 10)
-	
 
-	
+
+
         self.__set_properties()
         self.__do_layout()
         # end wxGlade
@@ -79,7 +79,7 @@ class MyFrame(wx.Frame):
 	    self.panel_1.SetBackgroundColour(wx.Colour(255,0,0)) #Red
 	elif cont_stat == 1:
 	    self.panel_1.SetBackgroundColour(wx.Colour(0,255,0)) #Green
-	
+
 	#Left Message Window (Car Status)
 	self.text_ctrl_5.SetFont(font1)
 	if int_2 == 0:
@@ -104,7 +104,7 @@ class MyFrame(wx.Frame):
 	    self.panel_2.SetBackgroundColour(wx.Colour(255,255,0)) #Yellow
 	elif front_side == 3:
 	    self.panel_2.SetBackgroundColour(wx.Colour(0,255,0)) #Green
-	
+
 	#Lidar Detection Panel (Left Side of Car)
 	if left_side == 1:
 	    self.panel_3.SetBackgroundColour(wx.Colour(255,0,0)) #Red
@@ -112,7 +112,7 @@ class MyFrame(wx.Frame):
 	    self.panel_3.SetBackgroundColour(wx.Colour(255,255,0)) #Yellow
 	elif left_side == 3:
 	    self.panel_3.SetBackgroundColour(wx.Colour(0,255,0)) #Green
-	
+
 	#Lidar Detection Panel (Right Side of Car)
 	if right_side == 1:
 	    self.panel_4.SetBackgroundColour(wx.Colour(255,0,0)) #Red
@@ -120,13 +120,13 @@ class MyFrame(wx.Frame):
 	    self.panel_4.SetBackgroundColour(wx.Colour(255,255,0)) #Yellow
 	elif right_side == 3:
 	    self.panel_4.SetBackgroundColour(wx.Colour(0,255,0)) #Green
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
 
 
     def __set_properties(self):
@@ -202,7 +202,7 @@ class MyFrame(wx.Frame):
         grid_sizer_12.Add((0, 0), 0, 0, 0)
         grid_sizer_12.Add(self.panel_2, 1, wx.EXPAND, 0)
         grid_sizer_8.Add(grid_sizer_12, 1, wx.EXPAND, 0)
-        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("/home/me131/catkin_ws/src/genesis_control/GUI/blackcar.png", wx.BITMAP_TYPE_ANY))
+        bitmap_1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap("/home/mpc/catkin_ws/src/genesis_control/GUI/blackcar.png", wx.BITMAP_TYPE_ANY))
         grid_sizer_8.Add(bitmap_1, 0, wx.ALIGN_CENTER, 0)
         sizer_1.Add(grid_sizer_8, 1, wx.EXPAND, 0)
         grid_sizer_6.Add(sizer_1, 1, wx.EXPAND, 0)
@@ -237,7 +237,7 @@ def callback(msg):  #upper right textbox regarding controller
     int_2 = msg.data
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
 def callback0(msg2): #lower textbox regarding car
-    global int_3 
+    global int_3
     int_3 = msg2.data
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg2.data)
 def callback1(pnl1): #controller status
@@ -264,7 +264,7 @@ def callback5(msg1): #Top Textbox for Warnings
 
 
 
-   
+
 if __name__ == "__main__":
     rospy.init_node('button', anonymous = True)
     rospy.Subscriber("msgvalue", UInt8, callback)
