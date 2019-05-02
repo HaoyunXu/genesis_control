@@ -11,6 +11,7 @@ import time
 
 from std_msgs.msg import UInt8
 from std_msgs.msg import Bool
+from std_msgs.msg import Float32MultiArray
 
 # begin wxGlade: dependencies
 # end wxGlade
@@ -21,7 +22,7 @@ from std_msgs.msg import Bool
 # Default values
 int_1 = 0
 int_2 = 0
-int_3 = 0
+int_3 = None
 cont_stat = 0
 left_side = 1
 right_side = 1
@@ -89,13 +90,11 @@ class MyFrame(wx.Frame):
 
 	#Right Message Window (Controller Status)
 	self.text_ctrl_4.SetFont(font1)
-	if int_3 == 0:
+	if int_3 is None:
 	    self.text_ctrl_4.SetValue("OFF")
-	elif int_3 == 1:
-	    self.text_ctrl_4.SetValue("MPC")
-	elif int_3 == 2:
-	    self.text_ctrl_4.SetValue("MPC & Cruise Control")
-
+	else:
+	    self.text_ctrl_4.SetValue("Cruise Control")
+	
 
 	#Radar Detection Panel (Front of Car)
 	if front_side == 1:
@@ -233,12 +232,12 @@ def rosloop():
     while not rospy.is_shutdown():
 	rate.sleep()
 def callback(msg):  #upper right textbox regarding controller
-    global int_2
-    int_2 = msg.data
+    global int_3
+    int_3 = msg.data
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
 def callback0(msg2): #lower textbox regarding car
-    global int_3 
-    int_3 = msg2.data
+    global int_2 
+    int_2 = msg2.data
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg2.data)
 def callback1(pnl1): #controller status
     global cont_stat
@@ -267,13 +266,13 @@ def callback5(msg1): #Top Textbox for Warnings
    
 if __name__ == "__main__":
     rospy.init_node('button', anonymous = True)
-    rospy.Subscriber("msgvalue", UInt8, callback)
+    rospy.Subscriber("/vehicle/v_acc", Float32MultiArray, callback)
     rospy.Subscriber("msgvalue2", UInt8, callback0)
     rospy.Subscriber("pnlvalue1", UInt8, callback1)
     rospy.Subscriber("pnlvalue2", UInt8, callback2)
     rospy.Subscriber("pnlvalue3", UInt8, callback3)
     rospy.Subscriber("pnlvalue4", UInt8, callback4)
-    rospy.Subscriber("stopcmd", Bool, callback5)
+    rospy.Subscriber("/vehicle/takeover", Bool, callback5)
 
     threading.Thread(target = rosloop)
     app = MyApp(0)
