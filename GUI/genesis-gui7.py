@@ -49,7 +49,7 @@ class MyFrame(wx.Frame):
         self.panel_3 = wx.Panel(self, wx.ID_ANY)
         self.panel_2 = wx.Panel(self, wx.ID_ANY)
         self.panel_4 = wx.Panel(self, wx.ID_ANY)
-	self.pub = rospy.Publisher('buttonvalue',UInt8, queue_size = 10)
+	self.pub = rospy.Publisher('/vehicle/go_cmd',Bool, queue_size = 10)
 	
 
 	
@@ -57,7 +57,7 @@ class MyFrame(wx.Frame):
         self.__do_layout()
         # end wxGlade
     def onClick(self, evt):
-	button_value = 1
+	button_value = True
         rospy.loginfo(button_value)
         self.pub.publish(button_value)
 
